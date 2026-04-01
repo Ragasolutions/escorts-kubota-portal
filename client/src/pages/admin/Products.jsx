@@ -4,29 +4,58 @@ import Navbar from '../../components/Navbar'
 import toast from 'react-hot-toast'
 import { Plus, Pencil, Trash2, Package, X } from 'lucide-react'
 
+const categories = [
+  'Cap', 'Jacket', 'Shirt', 'Shirt - Dealer VIP',
+  'Shirt - Employees', 'Shoes', 'T-Shirt',
+  'Trousers', 'Wind Jacket', 'Workshop Uniform',
+]
+
+const brands = [
+  'Construction Equipment', 'Farmtrac', 'GENSET',
+  'HO', 'Kubota', 'Powertrac',
+]
+
 const Products = () => {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editProduct, setEditProduct] = useState(null)
+  const [images, setImages] = useState([])
+  const [uploading, setUploading] = useState(false)
   const [form, setForm] = useState({
-  name: '', description: '', category: '', brand: '',
-  price: '', originalPrice: '', stock: '', badge: '', sizes: ''
-})
+    name: '', description: '', category: '', brand: '',
+    price: '', originalPrice: '', stock: '', badge: '', sizes: ''
+  })
 
+  useEffect(() => { fetchProducts() }, [])
 
   const fetchProducts = async () => {
     try {
       const res = await api.get('/products')
       setProducts(res.data.products)
     } catch (err) {
-      toast.error('Failed to load products' , err)
+      toast.error('Failed to load products')
     }
     setLoading(false)
   }
 
+  const handleImageUpload = async (productId, files) => {
+    if (!files || files.length === 0) return
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      Array.from(files).forEach(file => formData.append('images', file))
+      await api.post(`/products/${productId}/images`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      toast.success('Images uploaded!')
+      fetchProducts()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Image upload failed')
+    }
+    setUploading(false)
+  }
 
-  
   const handleSubmit = async () => {
     if (!form.name || !form.category || !form.price) {
       return toast.error('Name, category and price are required')
@@ -39,38 +68,50 @@ const Products = () => {
         stock: Number(form.stock) || 0,
         sizes: form.sizes ? form.sizes.split(',').map(s => s.trim()) : [],
       }
+
+      let productId
       if (editProduct) {
         await api.put(`/products/${editProduct._id}`, payload)
         toast.success('Product updated!')
+        productId = editProduct._id
       } else {
-        await api.post('/products', payload)
+        const res = await api.post('/products', payload)
         toast.success('Product created!')
+        productId = res.data.product._id
       }
+
+      // Upload images if selected
+      if (images.length > 0) {
+        await handleImageUpload(productId, images)
+      }
+
       setShowForm(false)
       setEditProduct(null)
-setForm({ name: '', description: '', category: '', price: '', originalPrice: '', stock: '', badge: '', sizes: '' })    } catch (err) {
+      setImages([])
+      setForm({ name: '', description: '', category: '', brand: '', price: '', originalPrice: '', stock: '', badge: '', sizes: '' })
+      fetchProducts()
+    } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to save product')
     }
   }
 
-    useEffect(() => { fetchProducts() }, [])
-
-
   const handleEdit = (product) => {
-  setEditProduct(product)
-  setForm({
-    name: product.name,
-    description: product.description || '',
-    category: product.category,
-    brand: product.brand || '',
-    price: product.price,
-    originalPrice: product.originalPrice || '',
-    stock: product.stock,
-    badge: product.badge || '',
-    sizes: product.sizes?.join(', ') || '',
-  })
-  setShowForm(true)
-}
+    setEditProduct(product)
+    setForm({
+      name: product.name,
+      description: product.description || '',
+      category: product.category,
+      brand: product.brand || '',
+      price: product.price,
+      originalPrice: product.originalPrice || '',
+      stock: product.stock,
+      badge: product.badge || '',
+      sizes: product.sizes?.join(', ') || '',
+    })
+    setImages([])
+    setShowForm(true)
+  }
+
   const handleDelete = async (id) => {
     if (!window.confirm('Deactivate this product?')) return
     try {
@@ -78,20 +119,16 @@ setForm({ name: '', description: '', category: '', price: '', originalPrice: '',
       toast.success('Product deactivated!')
       fetchProducts()
     } catch (err) {
-      toast.error('Failed to deactivate' , err)
+      toast.error('Failed to deactivate')
     }
   }
 
-  const categories = [
-  'Cap', 'Jacket', 'Shirt', 'Shirt - Dealer VIP',
-  'Shirt - Employees', 'Shoes', 'T-Shirt',
-  'Trousers', 'Wind Jacket', 'Workshop Uniform',
-]
-
-const brands = [
-  'Construction Equipment', 'Farmtrac', 'GENSET',
-  'HO', 'Kubota', 'Powertrac',
-]
+  const resetForm = () => {
+    setShowForm(false)
+    setEditProduct(null)
+    setImages([])
+    setForm({ name: '', description: '', category: '', brand: '', price: '', originalPrice: '', stock: '', badge: '', sizes: '' })
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -105,12 +142,8 @@ const brands = [
             <p className="text-gray-400 text-sm">{products.length} products total</p>
           </div>
           <button
-            onClick={() => {
-              setShowForm(true)
-              setEditProduct(null)
-              setForm({ name: '', description: '', category: '', price: '', originalPrice: '', stock: '', badge: '', sizes: '' })
-            }}
-            className="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition shadow-lg shadow-green-100"
+            onClick={() => { resetForm(); setShowForm(true) }}
+            className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-black px-4 py-2.5 rounded-xl text-sm font-bold transition shadow-lg shadow-amber-100"
           >
             <Plus size={16} />
             Add Product
@@ -124,83 +157,118 @@ const brands = [
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                 <h3 className="font-black text-gray-800">{editProduct ? 'Edit Product' : 'New Product'}</h3>
                 <button
-                  onClick={() => { setShowForm(false); setEditProduct(null) }}
+                  onClick={resetForm}
                   className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 transition"
                 >
                   <X size={16} className="text-gray-500" />
                 </button>
               </div>
+
               <div className="p-6 grid grid-cols-2 gap-3">
-  <input
-    placeholder="Product Name *"
-    value={form.name}
-    onChange={e => setForm({ ...form, name: e.target.value })}
-    className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 col-span-2"
-  />
-  <select
-    value={form.category}
-    onChange={e => setForm({ ...form, category: e.target.value })}
-    className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
-  >
-    <option value="">Select Category *</option>
-    {categories.map(c => <option key={c} value={c}>{c}</option>)}
-  </select>
-  <select
-    value={form.brand}
-    onChange={e => setForm({ ...form, brand: e.target.value })}
-    className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
-  >
-    <option value="">Select Brand</option>
-    {brands.map(b => <option key={b} value={b}>{b}</option>)}
-  </select>
-  <input
-    placeholder="Price *"
-    type="number"
-    value={form.price}
-    onChange={e => setForm({ ...form, price: e.target.value })}
-    className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-  />
-  <input
-    placeholder="Original Price"
-    type="number"
-    value={form.originalPrice}
-    onChange={e => setForm({ ...form, originalPrice: e.target.value })}
-    className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-  />
-  <input
-    placeholder="Stock"
-    type="number"
-    value={form.stock}
-    onChange={e => setForm({ ...form, stock: e.target.value })}
-    className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-  />
-  <input
-    placeholder="Badge (e.g. New, Hot)"
-    value={form.badge}
-    onChange={e => setForm({ ...form, badge: e.target.value })}
-    className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-  />
-  <input
-    placeholder="Sizes (e.g. S, M, L, XL)"
-    value={form.sizes}
-    onChange={e => setForm({ ...form, sizes: e.target.value })}
-    className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 col-span-2"
-  />
-  <input
-    placeholder="Description"
-    value={form.description}
-    onChange={e => setForm({ ...form, description: e.target.value })}
-    className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 col-span-2"
-  />
-</div>
+                <input
+                  placeholder="Product Name *"
+                  value={form.name}
+                  onChange={e => setForm({ ...form, name: e.target.value })}
+                  className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 col-span-2"
+                />
+                <select
+                  value={form.category}
+                  onChange={e => setForm({ ...form, category: e.target.value })}
+                  className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+                >
+                  <option value="">Select Category *</option>
+                  {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+                <select
+                  value={form.brand}
+                  onChange={e => setForm({ ...form, brand: e.target.value })}
+                  className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+                >
+                  <option value="">Select Brand</option>
+                  {brands.map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
+                <input
+                  placeholder="Price *"
+                  type="number"
+                  value={form.price}
+                  onChange={e => setForm({ ...form, price: e.target.value })}
+                  className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                />
+                <input
+                  placeholder="Original Price"
+                  type="number"
+                  value={form.originalPrice}
+                  onChange={e => setForm({ ...form, originalPrice: e.target.value })}
+                  className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                />
+                <input
+                  placeholder="Stock"
+                  type="number"
+                  value={form.stock}
+                  onChange={e => setForm({ ...form, stock: e.target.value })}
+                  className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                />
+                <input
+                  placeholder="Badge (e.g. New, Hot)"
+                  value={form.badge}
+                  onChange={e => setForm({ ...form, badge: e.target.value })}
+                  className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                />
+                <input
+                  placeholder="Sizes (e.g. S, M, L, XL)"
+                  value={form.sizes}
+                  onChange={e => setForm({ ...form, sizes: e.target.value })}
+                  className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 col-span-2"
+                />
+                <input
+                  placeholder="Description"
+                  value={form.description}
+                  onChange={e => setForm({ ...form, description: e.target.value })}
+                  className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 col-span-2"
+                />
+
+                {/* Image Upload */}
+                <div className="col-span-2">
+                  <label className="text-xs text-gray-500 font-medium block mb-1">
+                    Product Images (max 4)
+                  </label>
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={e => setImages(e.target.files)}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                  />
+                  {images.length > 0 && (
+                    <p className="text-xs text-amber-600 mt-1">{images.length} image(s) selected</p>
+                  )}
+                </div>
+
+                {/* Show existing images when editing */}
+                {editProduct?.images?.length > 0 && (
+                  <div className="col-span-2">
+                    <p className="text-xs text-gray-500 font-medium mb-2">Current Images</p>
+                    <div className="flex gap-2 flex-wrap">
+                      {editProduct.images.map((img, i) => (
+                        <div key={i} className="w-16 h-16 rounded-lg overflow-hidden border border-gray-200">
+                          <img src={img.url} alt="" className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="flex gap-2 px-6 pb-6">
                 <button
                   onClick={handleSubmit}
-className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-black px-4 py-2.5 rounded-xl text-sm font-bold transition shadow-lg shadow-amber-100"                >
-                  {editProduct ? 'Update Product' : 'Create Product'}
+                  disabled={uploading}
+                  className="flex-1 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 text-black py-2.5 rounded-xl text-sm font-bold transition"
+                >
+                  {uploading ? 'Uploading...' : editProduct ? 'Update Product' : 'Create Product'}
                 </button>
                 <button
-                  onClick={() => { setShowForm(false); setEditProduct(null) }}
+                  onClick={resetForm}
                   className="px-4 border border-gray-200 rounded-xl text-sm text-gray-500 hover:bg-gray-50 transition"
                 >
                   Cancel
@@ -230,9 +298,9 @@ className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-black px
                 <tr className="text-left text-gray-400 text-xs uppercase tracking-wide">
                   <th className="px-5 py-3">Product</th>
                   <th className="px-5 py-3">Category</th>
+                  <th className="px-5 py-3">Brand</th>
                   <th className="px-5 py-3">Price</th>
                   <th className="px-5 py-3">Stock</th>
-                  <th className="px-5 py-3">Badge</th>
                   <th className="px-5 py-3">Actions</th>
                 </tr>
               </thead>
@@ -257,8 +325,9 @@ className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-black px
                       </div>
                     </td>
                     <td className="px-5 py-3 text-gray-500">{product.category}</td>
+                    <td className="px-5 py-3 text-gray-500">{product.brand || '-'}</td>
                     <td className="px-5 py-3">
-                      <p className="font-bold text-green-700">₹{product.price}</p>
+                      <p className="font-bold text-gray-800">₹{product.price}</p>
                       {product.originalPrice && (
                         <p className="text-xs text-gray-400 line-through">₹{product.originalPrice}</p>
                       )}
@@ -271,13 +340,6 @@ className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-black px
                       }`}>
                         {product.stock} units
                       </span>
-                    </td>
-                    <td className="px-5 py-3">
-                      {product.badge && (
-                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-bold">
-                          {product.badge}
-                        </span>
-                      )}
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-2">

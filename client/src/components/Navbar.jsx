@@ -23,15 +23,33 @@ const Navbar = ({ cartCount = 0 }) => {
       {/* Top Bar */}
       <div className="bg-[#1a1a1a] px-6 py-2.5 flex items-center justify-between">
         {/* Left — EK Branding */}
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-red-600 rounded flex items-center justify-center shrink-0">
-            <span className="text-white font-black text-xs">EK</span>
-          </div>
-          <div>
-            <p className="text-white font-black text-xs leading-none">Escorts Kubota</p>
-            <p className="text-gray-400 text-xs">Merchandise Portal</p>
-          </div>
-        </div>
+       <div className="flex items-center gap-2">
+  
+  {/* Left EK Box (keep if you want) */}
+  <div className="w-8 h-8 bg-red-600 rounded flex items-center justify-center shrink-0">
+    <span className="text-white font-black text-xs">EK</span>
+  </div>
+
+  {/* Text + Logo */}
+  <div className="flex items-center gap-2">
+    <div>
+      <p className="text-white font-black text-xs leading-none">
+        Escorts Kubota
+      </p>
+      <p className="text-gray-400 text-xs">
+        Merchandise Portal
+      </p>
+    </div>
+
+    {/* Style4You Logo */}
+    <img
+      src="/logo-1.jpeg"
+      alt="Style4You"
+      className="w-12 h-16 object-contain"
+    />
+  </div>
+
+</div>
 
         {/* Right — Contact info */}
         <div className="hidden md:flex items-center gap-4 text-xs text-gray-400">
