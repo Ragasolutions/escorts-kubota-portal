@@ -24,7 +24,7 @@ app.use((req, res, next) => {
 })
 app.use(morgan('dev'));
 app.use(cors({
-  origin: 'https://escorts-kubota-portal.vercel.app',
+  origin: '*',
   credentials: true,
 }))
 app.use(express.json());
