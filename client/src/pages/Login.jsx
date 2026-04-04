@@ -62,7 +62,7 @@ const Login = () => {
           </div>
 
           {/* S4U Logo */}
-          <a href="https://orange-rat-828494.hostingersite.com/" className="inline-block">
+          <a href="https://orange-rat-828494.hostingersite.com/" className="inline-block" target="_blank" rel="noopener noreferrer">
   <img
     src="/logo-1.jpeg"
     alt="S4U Style For You"
