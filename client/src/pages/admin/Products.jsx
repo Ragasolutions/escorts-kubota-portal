@@ -34,7 +34,7 @@ const Products = () => {
       const res = await api.get('/products')
       setProducts(res.data.products)
     } catch (err) {
-      toast.error('Failed to load products')
+      toast.error('Failed to load products' , err)
     }
     setLoading(false)
   }
@@ -119,7 +119,7 @@ const Products = () => {
       toast.success('Product deactivated!')
       fetchProducts()
     } catch (err) {
-      toast.error('Failed to deactivate')
+      toast.error('Failed to deactivate' ,err)
     }
   }
 

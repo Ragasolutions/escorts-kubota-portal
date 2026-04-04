@@ -41,55 +41,90 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex">
+
       {/* Left Panel */}
-      <div className="hidden lg:flex w-1/2 bg-green-700 flex-col justify-between p-12 relative overflow-hidden">
-        {/* Background circles */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-green-600 rounded-full -translate-y-1/2 translate-x-1/2 opacity-50" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-green-800 rounded-full translate-y-1/2 -translate-x-1/2 opacity-50" />
+      <div className="hidden lg:flex w-1/2 bg-[#111111] flex-col justify-between p-12 relative overflow-hidden">
+        {/* Background decorations */}
+        <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500 rounded-full -translate-y-1/2 translate-x-1/2 opacity-10" />
+        <div className="absolute bottom-0 left-0 w-60 h-60 bg-amber-500 rounded-full translate-y-1/2 -translate-x-1/2 opacity-10" />
 
-        {/* Logo */}
-        <div className="relative z-10">
-          <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mb-6 shadow-lg">
-            <span className="text-green-700 font-black text-xl">EK</span>
-          </div>
-          <h1 className="text-white text-4xl font-black leading-tight">
-            Escorts<br />Kubota
-          </h1>
-          <p className="text-green-200 mt-2 text-lg">Merchandise Portal</p>
-        </div>
-
-        {/* Features */}
-        <div className="relative z-10 space-y-4">
-          {[
-            { icon: '🛍️', title: 'Order Merchandise', desc: 'Browse and order branded products' },
-            { icon: '📦', title: 'Track Orders', desc: 'Real-time order status updates' },
-            { icon: '👥', title: 'Dealer Network', desc: 'Exclusive portal for EK dealers' },
-          ].map((f) => (
-            <div key={f.title} className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-white bg-opacity-20 rounded-xl flex items-center justify-center text-xl shrink-0">
-                {f.icon}
-              </div>
-              <div>
-                <p className="text-white font-semibold text-sm">{f.title}</p>
-                <p className="text-green-200 text-xs">{f.desc}</p>
-              </div>
+        {/* Top — Both logos */}
+        <div className="relative z-10 flex items-center justify-between">
+          {/* EK Logo */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center shrink-0">
+              <span className="text-white font-black text-sm">EK</span>
             </div>
-          ))}
+            <div>
+              <p className="text-white font-black text-sm leading-none">Escorts Kubota</p>
+              <p className="text-gray-500 text-xs">Merchandise Portal</p>
+            </div>
+          </div>
+
+          {/* S4U Logo */}
+          <a href="https://orange-rat-828494.hostingersite.com/" className="inline-block">
+  <img
+    src="/logo-1.jpeg"
+    alt="S4U Style For You"
+    className="h-12 w-auto object-contain bg-white rounded-xl px-3 py-1.5 shadow-lg"
+  />
+</a>
         </div>
 
-        <p className="relative z-10 text-green-300 text-xs">© 2024 Escorts Kubota Ltd.</p>
+        {/* Middle Content */}
+        <div className="relative z-10">
+          <div className="w-16 h-1 bg-amber-500 mb-6 rounded-full" />
+          <h1 className="text-white text-4xl font-black leading-tight">
+            Welcome to the<br />
+            <span className="text-amber-500">Exclusive Portal</span><br />
+            For Escorts<br />
+            Dealership Uniform
+          </h1>
+          <p className="text-gray-400 mt-4 text-sm leading-relaxed">
+            Browse and order official Escorts Kubota branded merchandise exclusively for dealers and employees.
+          </p>
+
+          {/* Features */}
+          <div className="mt-8 space-y-3">
+            {[
+              'Official branded merchandise',
+              'Exclusive dealer pricing',
+              'Real-time order tracking',
+              'Secure OTP-based login',
+            ].map((feature) => (
+              <div key={feature} className="flex items-center gap-3">
+                <div className="w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center shrink-0">
+                  <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <p className="text-gray-300 text-sm">{feature}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <p className="relative z-10 text-gray-600 text-xs">
+          © 2024 Escorts Kubota Ltd. Powered by Style For You
+        </p>
       </div>
 
       {/* Right Panel */}
-      <div className="flex-1 flex items-center justify-center bg-gray-50 px-6">
+      <div className="flex-1 flex items-center justify-center bg-white px-6">
         <div className="w-full max-w-sm">
+
           {/* Mobile Logo */}
-          <div className="lg:hidden text-center mb-8">
-            <div className="w-14 h-14 bg-green-700 rounded-2xl flex items-center justify-center mx-auto mb-3">
-              <span className="text-white font-black text-xl">EK</span>
+          <div className="lg:hidden flex items-center justify-between mb-8">
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center">
+                <span className="text-white font-black text-sm">EK</span>
+              </div>
+              <div>
+                <p className="font-black text-gray-800 text-sm">Escorts Kubota</p>
+                <p className="text-gray-400 text-xs">Merchandise Portal</p>
+              </div>
             </div>
-            <h1 className="text-xl font-black text-gray-800">Escorts Kubota</h1>
-            <p className="text-gray-500 text-sm">Merchandise Portal</p>
+            <img src="/logo-1.jpeg" alt="S4U" className="h-20 w-auto object-contain" />
           </div>
 
           {step === 1 ? (
@@ -99,8 +134,8 @@ const Login = () => {
 
               <div className="mb-5">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Phone Number</label>
-                <div className="flex mt-2 shadow-sm">
-                  <span className="bg-white border border-r-0 rounded-l-xl px-4 flex items-center text-gray-500 text-sm font-medium">
+                <div className="flex mt-2">
+                  <span className="bg-gray-50 border border-r-0 rounded-l-xl px-4 flex items-center text-gray-500 text-sm font-medium">
                     🇮🇳 +91
                   </span>
                   <input
@@ -109,7 +144,7 @@ const Login = () => {
                     onChange={(e) => setPhone(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSendOtp()}
                     placeholder="Enter your phone number"
-                    className="flex-1 bg-white border rounded-r-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="flex-1 bg-white border rounded-r-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
                   />
                 </div>
               </div>
@@ -117,7 +152,7 @@ const Login = () => {
               <button
                 onClick={handleSendOtp}
                 disabled={loading}
-                className="w-full bg-green-700 hover:bg-green-800 active:scale-95 text-white py-3.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-green-200"
+                className="w-full bg-amber-500 hover:bg-amber-600 active:scale-95 text-black py-3.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-amber-100"
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
@@ -130,18 +165,18 @@ const Login = () => {
                 ) : 'Send OTP →'}
               </button>
 
-              <div className="mt-6 p-3 bg-yellow-50 border border-yellow-200 rounded-xl">
-  <p className="text-xs text-yellow-700 text-center">
-    Demo mode — use OTP <span className="font-black">123456</span>
-  </p>
-</div>
+              <div className="mt-6 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                <p className="text-xs text-amber-700 text-center">
+                  Demo mode — use OTP <span className="font-black">123456</span>
+                </p>
+              </div>
 
-<p className="text-center text-xs text-gray-400 mt-4">
-  Don't have an account?{' '}
-  <span className="text-green-700 font-bold">
-    Contact your Escorts Kubota representative
-  </span>
-</p>
+              <p className="text-center text-xs text-gray-400 mt-4">
+                Don't have an account?{' '}
+                <span className="text-amber-600 font-bold">
+                  Contact your Escorts Kubota representative
+                </span>
+              </p>
             </>
           ) : (
             <>
@@ -159,14 +194,14 @@ const Login = () => {
                   onKeyDown={(e) => e.key === 'Enter' && handleVerifyOtp()}
                   placeholder="• • • • • •"
                   maxLength={6}
-                  className="w-full bg-white border rounded-xl px-4 py-3 text-center text-2xl font-black tracking-widest mt-2 focus:outline-none focus:ring-2 focus:ring-green-500 shadow-sm"
+                  className="w-full bg-white border rounded-xl px-4 py-3 text-center text-2xl font-black tracking-widest mt-2 focus:outline-none focus:ring-2 focus:ring-amber-400 shadow-sm"
                 />
               </div>
 
               <button
                 onClick={handleVerifyOtp}
                 disabled={loading}
-                className="w-full bg-green-700 hover:bg-green-800 active:scale-95 text-white py-3.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-green-200"
+                className="w-full bg-amber-500 hover:bg-amber-600 active:scale-95 text-black py-3.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-amber-100"
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
@@ -181,7 +216,7 @@ const Login = () => {
 
               <button
                 onClick={() => { setStep(1); setOtp('') }}
-                className="w-full mt-3 text-sm text-gray-400 hover:text-green-700 transition py-2"
+                className="w-full mt-3 text-sm text-gray-400 hover:text-amber-600 transition py-2"
               >
                 ← Change number
               </button>
