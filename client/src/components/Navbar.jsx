@@ -42,11 +42,14 @@ const Navbar = ({ cartCount = 0 }) => {
     </div>
 
     {/* Style4You Logo */}
-    <img
-      src="/logo-1.jpeg"
-      alt="Style4You"
-      className="w-12 h-16 object-contain"
-    />
+     {/* S4U Logo */}
+          <a href="https://orange-rat-828494.hostingersite.com/" className="inline-block" target="_blank" rel="noopener noreferrer">
+  <img
+    src="/logo-1.jpeg"
+    alt="S4U Style For You"
+    className="h-12 w-auto object-contain bg-white rounded-xl px-3 py-1.5 shadow-lg"
+  />
+</a>
   </div>
 
 </div>
