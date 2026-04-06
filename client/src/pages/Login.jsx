@@ -8,6 +8,8 @@ const Login = () => {
   const [phone, setPhone] = useState('')
   const [otp, setOtp] = useState('')
   const [step, setStep] = useState(1)
+  const [selectedRole, setSelectedRole] = useState('Dealer')
+  const [showModal, setShowModal] = useState(null)
   const [loading, setLoading] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
@@ -66,7 +68,7 @@ const Login = () => {
   <img
     src="/logo-1.jpeg"
     alt="S4U Style For You"
-    className="h-12 w-auto object-contain bg-white rounded-xl px-3 py-1.5 shadow-lg"
+    className="h-20 w-auto object-contain bg-white rounded-xl px-3 py-1.5 shadow-lg"
   />
 </a>
         </div>
@@ -104,9 +106,99 @@ const Login = () => {
           </div>
         </div>
 
-        <p className="relative z-10 text-gray-600 text-xs">
-          © 2024 Escorts Kubota Ltd. Powered by Style For You
-        </p>
+        {/* Footer */}
+<div className="mt-8 pt-6 border-t border-gray-100">
+  <p className="text-center text-xs text-gray-400 mb-2">
+    © 2024 Escorts Kubota Ltd. Powered by Style For You
+  </p>
+  <div className="flex items-center justify-center gap-4">
+    <button
+      onClick={() => setShowModal('about')}
+      className="text-xs text-gray-400 hover:text-amber-600 transition"
+    >
+      About Us
+    </button>
+    <span className="text-gray-200">|</span>
+    <button
+      onClick={() => setShowModal('privacy')}
+      className="text-xs text-gray-400 hover:text-amber-600 transition"
+    >
+      Privacy Policy
+    </button>
+    <span className="text-gray-200">|</span>
+    <button
+      onClick={() => setShowModal('terms')}
+      className="text-xs text-gray-400 hover:text-amber-600 transition"
+    >
+      Terms & Conditions
+    </button>
+  </div>
+</div>
+
+{/* Modal */}
+{showModal && (
+  <div className="fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center px-4">
+    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-y-auto">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <h3 className="font-black text-gray-800">
+          {showModal === 'about' && 'About Us'}
+          {showModal === 'privacy' && 'Privacy Policy'}
+          {showModal === 'terms' && 'Terms & Conditions'}
+        </h3>
+        <button
+          onClick={() => setShowModal(null)}
+          className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 transition text-gray-500"
+        >
+          ✕
+        </button>
+      </div>
+      <div className="px-6 py-5 text-sm text-gray-600 leading-relaxed">
+        {showModal === 'about' && (
+          <>
+            <p className="font-bold text-gray-800 mb-2">Escorts Kubota Merchandise Portal</p>
+            <p>This portal is an exclusive internal platform for Escorts Kubota authorized dealers and employees to browse and order official branded merchandise including uniforms, accessories, and promotional items.</p>
+            <p className="mt-3">Powered by <span className="font-bold text-amber-600">Style For You (S4U)</span> — your trusted partner for branded merchandise solutions.</p>
+            <p className="mt-3">For support, contact us at:<br />
+              📞 +91 96500 76390<br />
+              ✉️ client.support@s4u.com
+            </p>
+          </>
+        )}
+        {showModal === 'privacy' && (
+          <>
+            <p className="font-bold text-gray-800 mb-2">Privacy Policy</p>
+            <p>We are committed to protecting your personal information. This portal collects only the information necessary to process your orders and provide our services.</p>
+            <p className="mt-3"><span className="font-bold">Data we collect:</span> Name, phone number, dealer/employee code, and shipping address.</p>
+            <p className="mt-3"><span className="font-bold">How we use it:</span> To authenticate your identity, process orders, and provide order tracking updates.</p>
+            <p className="mt-3"><span className="font-bold">Data sharing:</span> Your data is never sold or shared with third parties outside of Escorts Kubota and Style For You.</p>
+            <p className="mt-3"><span className="font-bold">Security:</span> All data is encrypted and stored securely on cloud servers.</p>
+            <p className="mt-4 text-xs text-gray-400">Last updated: March 2024</p>
+          </>
+        )}
+        {showModal === 'terms' && (
+          <>
+            <p className="font-bold text-gray-800 mb-2">Terms & Conditions</p>
+            <p><span className="font-bold">1. Access:</span> This portal is exclusively for authorized Escorts Kubota dealers and employees. Unauthorized access is prohibited.</p>
+            <p className="mt-3"><span className="font-bold">2. Orders:</span> All orders placed are subject to availability. Once confirmed, orders cannot be cancelled.</p>
+            <p className="mt-3"><span className="font-bold">3. Pricing:</span> All prices are exclusive to this portal and may differ from retail prices.</p>
+            <p className="mt-3"><span className="font-bold">4. Delivery:</span> Delivery timelines are estimates and may vary based on location and availability.</p>
+            <p className="mt-3"><span className="font-bold">5. Returns:</span> Returns are accepted within 7 days of delivery for defective items only.</p>
+            <p className="mt-3"><span className="font-bold">6. Misuse:</span> Any misuse of this portal may result in account deactivation.</p>
+            <p className="mt-4 text-xs text-gray-400">Last updated: March 2024</p>
+          </>
+        )}
+      </div>
+      <div className="px-6 pb-5">
+        <button
+          onClick={() => setShowModal(null)}
+          className="w-full bg-amber-500 hover:bg-amber-600 text-black py-2.5 rounded-xl text-sm font-bold transition"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+)}
       </div>
 
       {/* Right Panel */}
@@ -130,8 +222,35 @@ const Login = () => {
           {step === 1 ? (
             <>
               <h2 className="text-2xl font-black text-gray-800">Welcome back 👋</h2>
-              <p className="text-gray-500 text-sm mt-1 mb-8">Sign in with your registered phone number</p>
+<p className="text-gray-500 text-sm mt-1 mb-6">Sign in with your registered phone number</p>
 
+{/* Role Selector */}
+<div className="flex gap-3 mb-6">
+  {['Dealer', 'Employee'].map((role) => (
+    <div
+      key={role}
+      onClick={() => setSelectedRole(role)}
+      className={`flex-1 flex items-center gap-2 border-2 rounded-xl px-4 py-2.5 cursor-pointer transition ${
+        selectedRole === role
+          ? 'border-amber-500 bg-amber-50'
+          : 'border-gray-200 hover:border-amber-300'
+      }`}
+    >
+      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+        selectedRole === role ? 'border-amber-500' : 'border-gray-300'
+      }`}>
+        {selectedRole === role && (
+          <div className="w-2 h-2 rounded-full bg-amber-500" />
+        )}
+      </div>
+      <span className={`text-sm font-bold ${
+        selectedRole === role ? 'text-amber-700' : 'text-gray-500'
+      }`}>
+        {role}
+      </span>
+    </div>
+  ))}
+</div>
               <div className="mb-5">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Phone Number</label>
                 <div className="flex mt-2">
