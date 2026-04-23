@@ -3,8 +3,13 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 require('dotenv').config();
+console.log('Cloudinary config:', {
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+})
 const { notFound, errorHandler } = require('./middleware/error.middleware');
 const connectDB = require('./config/db');
+const cloudinary = require('./config/cloudinary');
 const authRoutes = require('./routes/auth.routes');
 const productRoutes = require('./routes/product.routes');
 const orderRoutes = require('./routes/order.routes');
@@ -26,6 +31,7 @@ app.use((req, res, next) => {
 app.use(morgan('dev'));
 app.use(cors({
   origin: [
+     "http://localhost:5173",
     "https://escorts-kubota-portal.vercel.app"
   ],
   methods: ["GET", "POST", "PUT", "DELETE"],
