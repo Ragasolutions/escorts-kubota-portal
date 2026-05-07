@@ -24,7 +24,9 @@ exports.getProducts = async (req, res, next) => {
   try {
    const { category, brand, search, page = 1, limit = 12, sort = '-createdAt' } = req.query;
 
-    const filter = { isActive: true };
+const isAdmin = req.user.role === 'admin'
+const filter = isAdmin ? {} : { isActive: true }
+
 
     if (category) filter.category = category;
 if (brand) filter.brand = brand;
@@ -152,25 +154,24 @@ exports.updateProduct = async (req, res, next) => {
 
 exports.deleteProduct = async (req, res, next) => {
   try {
-    const product = await Product.findByIdAndUpdate(
-      req.params.id,
-      { isActive: false },
-      { new: true },
-    );
+    const product = await Product.findByIdAndDelete(req.params.id)
 
     if (!product) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Product not found" });
+      return res.status(404).json({ success: false, message: 'Product not found' })
     }
 
-    res
-      .status(200)
-      .json({ success: true, message: "Product deactivated successfully" });
+    // Also delete images from Cloudinary
+    if (product.images?.length > 0) {
+      await Promise.all(
+        product.images.map(img => cloudinary.uploader.destroy(img.public_id))
+      )
+    }
+
+    res.status(200).json({ success: true, message: 'Product permanently deleted' })
   } catch (error) {
-    next(error);
+    next(error)
   }
-};
+}
 
 // ─── @desc    Upload images to a product ────────────────────
 // ─── @route   POST /api/products/:id/images ─────────────────

@@ -1,5 +1,4 @@
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+const mongoose = require('mongoose')
 
 const userSchema = new mongoose.Schema(
   {
@@ -13,6 +12,10 @@ const userSchema = new mongoose.Schema(
     name: {
       type: String,
       required: [true, 'Name is required'],
+      trim: true,
+    },
+    dealershipName: {
+      type: String,
       trim: true,
     },
     phone: {
@@ -35,18 +38,14 @@ const userSchema = new mongoose.Schema(
       default: true,
     },
     address: {
-      street: String,
-      city: String,
-      state: String,
-      pincode: String,
+      type: String,
+      trim: true,
     },
     lastLogin: {
       type: Date,
     },
   },
-  {
-    timestamps: true,
-  }
-);
+  { timestamps: true }
+)
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = mongoose.model('User', userSchema)

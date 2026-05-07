@@ -1,348 +1,832 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import api from '../services/api'
 import { useAuth } from '../context/AuthContext'
+import { auth } from '../config/firebase'
+import {
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+} from 'firebase/auth'
+
+// ─── Zod Schemas ─────────────────────────────────────────────
+
+const phoneSchema = z.object({
+  phone: z
+    .string()
+    .min(1, 'Phone number is required')
+    .regex(
+      /^[6-9]\d{9}$/,
+      'Enter a valid 10-digit Indian mobile number'
+    ),
+})
+
+const otpSchema = z.object({
+  otp: z
+    .string()
+    .min(1, 'OTP is required')
+    .length(6, 'OTP must be exactly 6 digits')
+    .regex(/^\d+$/, 'OTP must contain only numbers'),
+})
 
 const Login = () => {
-  const [phone, setPhone] = useState('')
-  const [otp, setOtp] = useState('')
+
   const [step, setStep] = useState(1)
-  const [selectedRole, setSelectedRole] = useState('Dealer')
-  const [showModal, setShowModal] = useState(null)
+
+  const [phone, setPhoneState] = useState('')
+
   const [loading, setLoading] = useState(false)
+
+  const [selectedRole, setSelectedRole] =
+    useState('Dealer')
+
+  const [showModal, setShowModal] =
+    useState(null)
+
+  const [confirmationResult, setConfirmationResult] =
+    useState(null)
+
+  const [useFirebase, setUseFirebase] =
+    useState(
+      import.meta.env.VITE_FIREBASE_API_KEY
+        ? true
+        : false
+    )
+
   const { login } = useAuth()
+
   const navigate = useNavigate()
 
-  const handleSendOtp = async () => {
-    if (!phone) return toast.error('Enter phone number')
+  const recaptchaRef = useRef(null)
+
+  // Phone Form
+  const {
+    register: registerPhone,
+    handleSubmit: handlePhoneSubmit,
+    formState: { errors: phoneErrors },
+  } = useForm({
+    resolver: zodResolver(phoneSchema),
+  })
+
+  // OTP Form
+  const {
+    register: registerOtp,
+    handleSubmit: handleOtpSubmit,
+    formState: { errors: otpErrors },
+  } = useForm({
+    resolver: zodResolver(otpSchema),
+  })
+
+  const onSendOtp = async (data) => {
+
     setLoading(true)
+
     try {
-      await api.post('/auth/send-otp', { phone })
-      toast.success('OTP sent! Use 123456 for demo')
+
+      await api.post('/auth/send-otp', {
+        phone: data.phone,
+      })
+
+      setPhoneState(data.phone)
+
+      if (useFirebase) {
+
+        // Create only once
+        if (!window.recaptchaVerifier) {
+
+          window.recaptchaVerifier =
+            new RecaptchaVerifier(
+              auth,
+              recaptchaRef.current,
+              {
+                size: 'invisible',
+              }
+            )
+
+          await window.recaptchaVerifier.render()
+        }
+
+        const result =
+          await signInWithPhoneNumber(
+            auth,
+            `+91${data.phone}`,
+            window.recaptchaVerifier
+          )
+
+        setConfirmationResult(result)
+
+        toast.success('OTP sent successfully!')
+
+      } else {
+
+        toast.success(
+          'OTP sent! Use 123456 for demo'
+        )
+      }
+
       setStep(2)
+
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Something went wrong')
+
+      toast.error(
+        err.response?.data?.message ||
+          err.message ||
+          'Failed to send OTP'
+      )
     }
+
     setLoading(false)
   }
 
-  const handleVerifyOtp = async () => {
-    if (!otp) return toast.error('Enter OTP')
+  const onVerifyOtp = async (data) => {
+
     setLoading(true)
+
     try {
-      const res = await api.post('/auth/verify-otp', { phone, otp })
+
+      let firebaseToken = null
+
+      if (
+        useFirebase &&
+        confirmationResult
+      ) {
+
+        // Verify with Firebase
+        const result =
+          await confirmationResult.confirm(
+            data.otp
+          )
+
+        firebaseToken =
+          await result.user.getIdToken()
+      }
+
+      const res = await api.post(
+        '/auth/verify-otp',
+        {
+          phone,
+          otp: data.otp,
+          firebaseToken,
+        }
+      )
+
       login(res.data.user, res.data.token)
-      toast.success(`Welcome ${res.data.user.name}!`)
-      navigate(res.data.user.role === 'admin' ? '/admin' : '/home')
+
+      toast.success(
+        `Welcome ${res.data.user.name}!`
+      )
+
+      navigate(
+        res.data.user.role === 'admin'
+          ? '/admin'
+          : '/home'
+      )
+
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Invalid OTP')
+
+      toast.error(
+        err.response?.data?.message ||
+          err.message ||
+          'Invalid OTP'
+      )
     }
+
     setLoading(false)
   }
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex flex-col lg:flex-row">
 
       {/* Left Panel */}
-      <div className="hidden lg:flex w-1/2 bg-[#111111] flex-col justify-between p-12 relative overflow-hidden">
-        {/* Background decorations */}
+      <div className="hidden lg:flex lg:w-1/2 bg-[#111111] flex-col justify-between p-8 xl:p-12 relative overflow-hidden">
+
         <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500 rounded-full -translate-y-1/2 translate-x-1/2 opacity-10" />
+
         <div className="absolute bottom-0 left-0 w-60 h-60 bg-amber-500 rounded-full translate-y-1/2 -translate-x-1/2 opacity-10" />
 
-        {/* Top — Both logos */}
-        <div className="relative z-10 flex items-center justify-between">
-          {/* EK Logo */}
-          <div className="flex items-center gap-3">
+        {/* Top Logos */}
+        <div className="relative z-10 flex items-center justify-between gap-4">
+
+          <div className="flex items-center gap-3 min-w-0">
+
             <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center shrink-0">
-              <span className="text-white font-black text-sm">EK</span>
+
+              <span className="text-white font-black text-sm">
+                EK
+              </span>
             </div>
-            <div>
-              <p className="text-white font-black text-sm leading-none">Escorts Kubota</p>
-              <p className="text-gray-500 text-xs">Merchandise Portal</p>
+
+            <div className="min-w-0">
+
+              <p className="text-white font-black text-sm leading-none truncate">
+                Escorts Kubota
+              </p>
+
+              <p className="text-gray-500 text-xs truncate">
+                Merchandise Portal
+              </p>
             </div>
           </div>
 
-          {/* S4U Logo */}
-          <a href="https://orange-rat-828494.hostingersite.com/" className="inline-block" target="_blank" rel="noopener noreferrer">
-  <img
-    src="/logo-1.jpeg"
-    alt="S4U Style For You"
-    className="h-20 w-auto object-contain bg-white rounded-xl px-3 py-1.5 shadow-lg"
-  />
-</a>
+          <a
+            href="https://orange-rat-828494.hostingersite.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0"
+          >
+            <img
+              src="/logo-1.jpeg"
+              alt="S4U"
+              className="h-16 xl:h-20 w-auto object-contain bg-white rounded-xl px-3 py-1.5 shadow-lg"
+            />
+          </a>
         </div>
 
-        {/* Middle Content */}
+        {/* Middle */}
         <div className="relative z-10">
+
           <div className="w-16 h-1 bg-amber-500 mb-6 rounded-full" />
-          <h1 className="text-white text-4xl font-black leading-tight">
-            Welcome to the<br />
-            <span className="text-amber-500">Exclusive Portal</span><br />
-            For Escorts<br />
+
+          <h1 className="text-white text-3xl xl:text-4xl font-black leading-tight">
+
+            Welcome to the
+            <br />
+
+            <span className="text-amber-500">
+              Exclusive Portal
+            </span>
+
+            <br />
+
+            For Escorts
+            <br />
+
             Dealership Uniform
           </h1>
-          <p className="text-gray-400 mt-4 text-sm leading-relaxed">
-            Browse and order official Escorts Kubota branded merchandise exclusively for dealers and employees.
+
+          <p className="text-gray-400 mt-4 text-sm leading-relaxed max-w-md">
+
+            Browse and order official Escorts Kubota
+            branded merchandise exclusively for
+            dealers and employees.
           </p>
 
-          {/* Features */}
           <div className="mt-8 space-y-3">
+
             {[
               'Official branded merchandise',
               'Exclusive dealer pricing',
               'Real-time order tracking',
               'Secure OTP-based login',
             ].map((feature) => (
-              <div key={feature} className="flex items-center gap-3">
+
+              <div
+                key={feature}
+                className="flex items-center gap-3"
+              >
+
                 <div className="w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center shrink-0">
-                  <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+
+                  <svg
+                    className="w-3 h-3 text-black"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={3}
+                      d="M5 13l4 4L19 7"
+                    />
                   </svg>
                 </div>
-                <p className="text-gray-300 text-sm">{feature}</p>
+
+                <p className="text-gray-300 text-sm">
+                  {feature}
+                </p>
               </div>
             ))}
           </div>
         </div>
 
         {/* Footer */}
-<div className="mt-8 pt-6 border-t border-gray-100">
-  <p className="text-center text-xs text-gray-400 mb-2">
-    © 2024 Escorts Kubota Ltd. Powered by Style For You
-  </p>
-  <div className="flex items-center justify-center gap-4">
-    <button
-      onClick={() => setShowModal('about')}
-      className="text-xs text-gray-400 hover:text-amber-600 transition"
-    >
-      About Us
-    </button>
-    <span className="text-gray-200">|</span>
-    <button
-      onClick={() => setShowModal('privacy')}
-      className="text-xs text-gray-400 hover:text-amber-600 transition"
-    >
-      Privacy Policy
-    </button>
-    <span className="text-gray-200">|</span>
-    <button
-      onClick={() => setShowModal('terms')}
-      className="text-xs text-gray-400 hover:text-amber-600 transition"
-    >
-      Terms & Conditions
-    </button>
-  </div>
-</div>
+        <div className="relative z-10">
 
-{/* Modal */}
-{showModal && (
-  <div className="fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center px-4">
-    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-y-auto">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-        <h3 className="font-black text-gray-800">
-          {showModal === 'about' && 'About Us'}
-          {showModal === 'privacy' && 'Privacy Policy'}
-          {showModal === 'terms' && 'Terms & Conditions'}
-        </h3>
-        <button
-          onClick={() => setShowModal(null)}
-          className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 transition text-gray-500"
-        >
-          ✕
-        </button>
-      </div>
-      <div className="px-6 py-5 text-sm text-gray-600 leading-relaxed">
-        {showModal === 'about' && (
-          <>
-            <p className="font-bold text-gray-800 mb-2">Escorts Kubota Merchandise Portal</p>
-            <p>This portal is an exclusive internal platform for Escorts Kubota authorized dealers and employees to browse and order official branded merchandise including uniforms, accessories, and promotional items.</p>
-            <p className="mt-3">Powered by <span className="font-bold text-amber-600">Style For You (S4U)</span> — your trusted partner for branded merchandise solutions.</p>
-            <p className="mt-3">For support, contact us at:<br />
-              📞 +91 96500 76390<br />
-              ✉️ client.support@s4u.com
-            </p>
-          </>
+          <p className="text-center text-xs text-gray-600 mb-2">
+            © 2024 Escorts Kubota Ltd. Powered by
+            Style For You
+          </p>
+
+          <div className="flex items-center justify-center gap-4 flex-wrap">
+
+            {[
+              'about',
+              'privacy',
+              'terms',
+            ].map((modal) => (
+
+              <button
+                key={modal}
+                onClick={() =>
+                  setShowModal(modal)
+                }
+                className="text-xs text-gray-500 hover:text-amber-500 transition capitalize"
+              >
+                {modal === 'about'
+                  ? 'About Us'
+                  : modal === 'privacy'
+                  ? 'Privacy Policy'
+                  : 'Terms & Conditions'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Modal */}
+        {showModal && (
+
+          <div className="fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center px-4">
+
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-y-auto">
+
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+
+                <h3 className="font-black text-gray-800">
+
+                  {showModal === 'about' &&
+                    'About Us'}
+
+                  {showModal === 'privacy' &&
+                    'Privacy Policy'}
+
+                  {showModal === 'terms' &&
+                    'Terms & Conditions'}
+                </h3>
+
+                <button
+                  onClick={() =>
+                    setShowModal(null)
+                  }
+                  className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 transition text-gray-500"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="px-6 py-5 text-sm text-gray-600 leading-relaxed">
+
+                {showModal === 'about' && (
+                  <>
+                    <p className="font-bold text-gray-800 mb-2">
+                      Escorts Kubota Merchandise
+                      Portal
+                    </p>
+
+                    <p>
+                      This portal is an exclusive
+                      internal platform for Escorts
+                      Kubota authorized dealers and
+                      employees to browse and order
+                      official branded merchandise.
+                    </p>
+
+                    <p className="mt-3">
+                      Powered by{' '}
+
+                      <span className="font-bold text-amber-600">
+                        Style For You (S4U)
+                      </span>
+                    </p>
+
+                    <p className="mt-3">
+                      📞 +91 96500 76390
+                      <br />
+                      ✉️ client.support@s4u.com
+                    </p>
+                  </>
+                )}
+
+                {showModal === 'privacy' && (
+                  <>
+                    <p className="font-bold text-gray-800 mb-2">
+                      Privacy Policy
+                    </p>
+
+                    <p>
+                      We collect only information
+                      necessary to process your
+                      orders — name, phone, dealer
+                      code, and shipping address.
+                      Your data is never sold or
+                      shared with third parties.
+                    </p>
+
+                    <p className="mt-4 text-xs text-gray-400">
+                      Last updated: March 2024
+                    </p>
+                  </>
+                )}
+
+                {showModal === 'terms' && (
+                  <>
+                    <p className="font-bold text-gray-800 mb-2">
+                      Terms & Conditions
+                    </p>
+
+                    <p>
+                      <span className="font-bold">
+                        1. Access:
+                      </span>{' '}
+                      Exclusively for authorized
+                      dealers and employees.
+                    </p>
+
+                    <p className="mt-2">
+                      <span className="font-bold">
+                        2. Orders:
+                      </span>{' '}
+                      Subject to availability.
+                      Once confirmed, cannot be
+                      cancelled.
+                    </p>
+
+                    <p className="mt-2">
+                      <span className="font-bold">
+                        3. Returns:
+                      </span>{' '}
+                      Accepted within 7 days for
+                      defective items only.
+                    </p>
+
+                    <p className="mt-4 text-xs text-gray-400">
+                      Last updated: March 2024
+                    </p>
+                  </>
+                )}
+              </div>
+
+              <div className="px-6 pb-5">
+
+                <button
+                  onClick={() =>
+                    setShowModal(null)
+                  }
+                  className="w-full bg-amber-500 hover:bg-amber-600 text-black py-2.5 rounded-xl text-sm font-bold transition"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
         )}
-        {showModal === 'privacy' && (
-          <>
-            <p className="font-bold text-gray-800 mb-2">Privacy Policy</p>
-            <p>We are committed to protecting your personal information. This portal collects only the information necessary to process your orders and provide our services.</p>
-            <p className="mt-3"><span className="font-bold">Data we collect:</span> Name, phone number, dealer/employee code, and shipping address.</p>
-            <p className="mt-3"><span className="font-bold">How we use it:</span> To authenticate your identity, process orders, and provide order tracking updates.</p>
-            <p className="mt-3"><span className="font-bold">Data sharing:</span> Your data is never sold or shared with third parties outside of Escorts Kubota and Style For You.</p>
-            <p className="mt-3"><span className="font-bold">Security:</span> All data is encrypted and stored securely on cloud servers.</p>
-            <p className="mt-4 text-xs text-gray-400">Last updated: March 2024</p>
-          </>
-        )}
-        {showModal === 'terms' && (
-          <>
-            <p className="font-bold text-gray-800 mb-2">Terms & Conditions</p>
-            <p><span className="font-bold">1. Access:</span> This portal is exclusively for authorized Escorts Kubota dealers and employees. Unauthorized access is prohibited.</p>
-            <p className="mt-3"><span className="font-bold">2. Orders:</span> All orders placed are subject to availability. Once confirmed, orders cannot be cancelled.</p>
-            <p className="mt-3"><span className="font-bold">3. Pricing:</span> All prices are exclusive to this portal and may differ from retail prices.</p>
-            <p className="mt-3"><span className="font-bold">4. Delivery:</span> Delivery timelines are estimates and may vary based on location and availability.</p>
-            <p className="mt-3"><span className="font-bold">5. Returns:</span> Returns are accepted within 7 days of delivery for defective items only.</p>
-            <p className="mt-3"><span className="font-bold">6. Misuse:</span> Any misuse of this portal may result in account deactivation.</p>
-            <p className="mt-4 text-xs text-gray-400">Last updated: March 2024</p>
-          </>
-        )}
-      </div>
-      <div className="px-6 pb-5">
-        <button
-          onClick={() => setShowModal(null)}
-          className="w-full bg-amber-500 hover:bg-amber-600 text-black py-2.5 rounded-xl text-sm font-bold transition"
-        >
-          Close
-        </button>
-      </div>
-    </div>
-  </div>
-)}
       </div>
 
       {/* Right Panel */}
-      <div className="flex-1 flex items-center justify-center bg-white px-6">
+      <div className="flex-1 flex items-center justify-center bg-white px-4 sm:px-6 py-8 sm:py-10">
+
         <div className="w-full max-w-sm">
 
           {/* Mobile Logo */}
-          <div className="lg:hidden flex items-center justify-between mb-8">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center">
-                <span className="text-white font-black text-sm">EK</span>
+          <div className="lg:hidden flex items-center justify-between gap-3 mb-8">
+
+            <div className="flex items-center gap-2 min-w-0">
+
+              <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center shrink-0">
+
+                <span className="text-white font-black text-sm">
+                  EK
+                </span>
               </div>
-              <div>
-                <p className="font-black text-gray-800 text-sm">Escorts Kubota</p>
-                <p className="text-gray-400 text-xs">Merchandise Portal</p>
+
+              <div className="min-w-0">
+
+                <p className="font-black text-gray-800 text-sm truncate">
+                  Escorts Kubota
+                </p>
+
+                <p className="text-gray-400 text-xs truncate">
+                  Merchandise Portal
+                </p>
               </div>
             </div>
-            <img src="/logo-1.jpeg" alt="S4U" className="h-20 w-auto object-contain" />
+
+            <img
+              src="/logo-1.jpeg"
+              alt="S4U"
+              className="h-12 sm:h-16 w-auto object-contain shrink-0"
+            />
           </div>
 
           {step === 1 ? (
-            <>
-              <h2 className="text-2xl font-black text-gray-800">Welcome back 👋</h2>
-<p className="text-gray-500 text-sm mt-1 mb-6">Sign in with your registered phone number</p>
 
-{/* Role Selector */}
-<div className="flex gap-3 mb-6">
-  {['Dealer', 'Employee'].map((role) => (
-    <div
-      key={role}
-      onClick={() => setSelectedRole(role)}
-      className={`flex-1 flex items-center gap-2 border-2 rounded-xl px-4 py-2.5 cursor-pointer transition ${
-        selectedRole === role
-          ? 'border-amber-500 bg-amber-50'
-          : 'border-gray-200 hover:border-amber-300'
-      }`}
-    >
-      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-        selectedRole === role ? 'border-amber-500' : 'border-gray-300'
-      }`}>
-        {selectedRole === role && (
-          <div className="w-2 h-2 rounded-full bg-amber-500" />
-        )}
-      </div>
-      <span className={`text-sm font-bold ${
-        selectedRole === role ? 'text-amber-700' : 'text-gray-500'
-      }`}>
-        {role}
-      </span>
-    </div>
-  ))}
-</div>
+            <form
+              onSubmit={handlePhoneSubmit(
+                onSendOtp
+              )}
+              noValidate
+            >
+
+              <h2 className="text-2xl font-black text-gray-800">
+                Welcome back 👋
+              </h2>
+
+              <p className="text-gray-500 text-sm mt-1 mb-6">
+                Sign in with your registered
+                phone number
+              </p>
+
+              {/* Role Selector */}
+              <div className="flex flex-col sm:flex-row gap-3 mb-6">
+
+                {[
+                  'Dealer',
+                  'Employee',
+                ].map((role) => (
+
+                  <div
+                    key={role}
+                    onClick={() =>
+                      setSelectedRole(role)
+                    }
+                    className={`flex-1 flex items-center gap-2 border-2 rounded-xl px-4 py-2.5 cursor-pointer transition ${
+                      selectedRole === role
+                        ? 'border-amber-500 bg-amber-50'
+                        : 'border-gray-200 hover:border-amber-300'
+                    }`}
+                  >
+
+                    <div
+                      className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                        selectedRole === role
+                          ? 'border-amber-500'
+                          : 'border-gray-300'
+                      }`}
+                    >
+                      {selectedRole === role && (
+                        <div className="w-2 h-2 rounded-full bg-amber-500" />
+                      )}
+                    </div>
+
+                    <span
+                      className={`text-sm font-bold ${
+                        selectedRole === role
+                          ? 'text-amber-700'
+                          : 'text-gray-500'
+                      }`}
+                    >
+                      {role}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Phone Input */}
               <div className="mb-5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Phone Number</label>
-                <div className="flex mt-2">
-                  <span className="bg-gray-50 border border-r-0 rounded-l-xl px-4 flex items-center text-gray-500 text-sm font-medium">
+
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+
+                  Phone Number{' '}
+
+                  <span className="text-red-500">
+                    *
+                  </span>
+                </label>
+
+                <div
+                  className={`flex mt-2 ${
+                    phoneErrors.phone
+                      ? 'ring-2 ring-red-400 rounded-xl'
+                      : ''
+                  }`}
+                >
+
+                  <span className="bg-gray-50 border border-r-0 rounded-l-xl px-3 sm:px-4 flex items-center text-gray-500 text-sm font-medium shrink-0">
+
                     🇮🇳 +91
                   </span>
+
                   <input
+                    {...registerPhone('phone')}
                     type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSendOtp()}
-                    placeholder="Enter your phone number"
-                    className="flex-1 bg-white border rounded-r-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+                    placeholder="Enter 10-digit mobile number"
+                    maxLength={10}
+                    className={`flex-1 min-w-0 bg-white border rounded-r-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:border-transparent ${
+                      phoneErrors.phone
+                        ? 'border-red-400 focus:ring-red-400'
+                        : 'focus:ring-amber-400'
+                    }`}
                   />
                 </div>
+
+                {phoneErrors.phone && (
+
+                  <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1">
+
+                    <svg
+                      className="w-3 h-3 shrink-0"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+
+                    {
+                      phoneErrors.phone
+                        .message
+                    }
+                  </p>
+                )}
               </div>
 
               <button
-                onClick={handleSendOtp}
+                type="submit"
                 disabled={loading}
-                className="w-full bg-amber-500 hover:bg-amber-600 active:scale-95 text-black py-3.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-amber-100"
+                className="w-full bg-amber-500 hover:bg-amber-600 active:scale-95 text-black py-3.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-amber-100 disabled:opacity-70 disabled:cursor-not-allowed"
               >
+
                 {loading ? (
+
                   <span className="flex items-center justify-center gap-2">
-                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+
+                    <svg
+                      className="animate-spin h-4 w-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v8z"
+                      />
                     </svg>
+
                     Sending OTP...
                   </span>
-                ) : 'Send OTP →'}
+
+                ) : (
+                  'Send OTP →'
+                )}
               </button>
 
               <div className="mt-6 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+
                 <p className="text-xs text-amber-700 text-center">
-                  Demo mode — use OTP <span className="font-black">123456</span>
+
+                  Demo mode — use OTP{' '}
+
+                  <span className="font-black">
+                    123456
+                  </span>
                 </p>
               </div>
 
-              <p className="text-center text-xs text-gray-400 mt-4">
+              <p className="text-center text-xs text-gray-400 mt-4 leading-relaxed">
+
                 Don't have an account?{' '}
+
                 <span className="text-amber-600 font-bold">
-                  Contact your Escorts Kubota representative
+                  Contact your Escorts Kubota
+                  representative
                 </span>
               </p>
-            </>
+            </form>
+
           ) : (
-            <>
-              <h2 className="text-2xl font-black text-gray-800">Enter OTP 🔐</h2>
-              <p className="text-gray-500 text-sm mt-1 mb-8">
-                Sent to <span className="font-bold text-gray-700">+91 {phone}</span>
+
+            <form
+              onSubmit={handleOtpSubmit(
+                onVerifyOtp
+              )}
+              noValidate
+            >
+
+              <h2 className="text-2xl font-black text-gray-800">
+                Enter OTP 🔐
+              </h2>
+
+              <p className="text-gray-500 text-sm mt-1 mb-8 leading-relaxed">
+
+                Sent to{' '}
+
+                <span className="font-bold text-gray-700 break-all">
+                  +91 {phone}
+                </span>
               </p>
 
+              {/* OTP Input */}
               <div className="mb-5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">One Time Password</label>
+
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+
+                  One Time Password{' '}
+
+                  <span className="text-red-500">
+                    *
+                  </span>
+                </label>
+
                 <input
+                  {...registerOtp('otp')}
                   type="text"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleVerifyOtp()}
                   placeholder="• • • • • •"
                   maxLength={6}
-                  className="w-full bg-white border rounded-xl px-4 py-3 text-center text-2xl font-black tracking-widest mt-2 focus:outline-none focus:ring-2 focus:ring-amber-400 shadow-sm"
+                  className={`w-full bg-white border rounded-xl px-4 py-3 text-center text-xl sm:text-2xl font-black tracking-[0.4em] mt-2 focus:outline-none focus:ring-2 shadow-sm ${
+                    otpErrors.otp
+                      ? 'border-red-400 focus:ring-red-400'
+                      : 'focus:ring-amber-400'
+                  }`}
                 />
+
+                {otpErrors.otp && (
+
+                  <p className="text-red-500 text-xs mt-1.5 flex items-center justify-center gap-1">
+
+                    <svg
+                      className="w-3 h-3 shrink-0"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+
+                    {otpErrors.otp.message}
+                  </p>
+                )}
               </div>
 
               <button
-                onClick={handleVerifyOtp}
+                type="submit"
                 disabled={loading}
-                className="w-full bg-amber-500 hover:bg-amber-600 active:scale-95 text-black py-3.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-amber-100"
+                className="w-full bg-amber-500 hover:bg-amber-600 active:scale-95 text-black py-3.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-amber-100 disabled:opacity-70 disabled:cursor-not-allowed"
               >
+
                 {loading ? (
+
                   <span className="flex items-center justify-center gap-2">
-                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+
+                    <svg
+                      className="animate-spin h-4 w-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v8z"
+                      />
                     </svg>
+
                     Verifying...
                   </span>
-                ) : 'Login to Portal →'}
+
+                ) : (
+                  'Login to Portal →'
+                )}
               </button>
 
               <button
-                onClick={() => { setStep(1); setOtp('') }}
+                type="button"
+                onClick={() => setStep(1)}
                 className="w-full mt-3 text-sm text-gray-400 hover:text-amber-600 transition py-2"
               >
                 ← Change number
               </button>
-            </>
+            </form>
           )}
         </div>
       </div>
+
+      <div ref={recaptchaRef} />
     </div>
   )
 }
