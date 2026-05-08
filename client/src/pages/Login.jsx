@@ -80,122 +80,242 @@ const Login = () => {
     resolver: zodResolver(otpSchema),
   })
 
-  const onSendOtp = async (data) => {
+ const onSendOtp = async (data) => {
 
-    setLoading(true)
+  setLoading(true)
 
-    try {
+  try {
 
-      await api.post('/auth/send-otp', {
-        phone: data.phone,
-      })
+    await api.post('/auth/send-otp', {
+      phone: data.phone,
+    })
 
-      setPhoneState(data.phone)
+    setPhoneState(data.phone)
 
-      if (useFirebase) {
+    if (useFirebase) {
 
-        // Create only once
-        if (!window.recaptchaVerifier) {
+      // Create reCAPTCHA only once
+      if (!window.recaptchaVerifier) {
 
-          window.recaptchaVerifier =
-            new RecaptchaVerifier(
-              auth,
-              recaptchaRef.current,
-              {
-                size: 'invisible',
-              }
-            )
-
-          await window.recaptchaVerifier.render()
-        }
-
-        const result =
-          await signInWithPhoneNumber(
+        window.recaptchaVerifier =
+          new RecaptchaVerifier(
             auth,
-            `+91${data.phone}`,
-            window.recaptchaVerifier
+            recaptchaRef.current,
+            {
+              size: 'invisible',
+            }
           )
 
-        setConfirmationResult(result)
-
-        toast.success('OTP sent successfully!')
-
-      } else {
-
-        toast.success(
-          'OTP sent! Use 123456 for demo'
-        )
+        await window.recaptchaVerifier.render()
       }
 
-      setStep(2)
+      const result =
+        await signInWithPhoneNumber(
+          auth,
+          `+91${data.phone}`,
+          window.recaptchaVerifier
+        )
 
-    } catch (err) {
+      setConfirmationResult(result)
 
-      toast.error(
-        err.response?.data?.message ||
-          err.message ||
-          'Failed to send OTP'
+      toast.success(
+        'OTP sent successfully!'
+      )
+
+    } else {
+
+      toast.success(
+        'OTP sent! Use 123456 for demo'
       )
     }
 
-    setLoading(false)
+    setStep(2)
+
+  } catch (err) {
+
+    console.log(err)
+
+    if (
+      err.code ===
+      'auth/too-many-requests'
+    ) {
+
+      toast.error(
+        'Too many attempts. Try again later.'
+      )
+
+    } else if (
+      err.code ===
+      'auth/invalid-phone-number'
+    ) {
+
+      toast.error(
+        'Invalid phone number.'
+      )
+
+    } else if (
+      err.code ===
+      'auth/network-request-failed'
+    ) {
+
+      toast.error(
+        'Network error. Check your internet.'
+      )
+
+    } else if (
+      err.code ===
+      'auth/invalid-app-credential'
+    ) {
+
+      toast.error(
+        'Verification failed. Please refresh and try again.'
+      )
+
+    } else if (
+      err.message?.includes(
+        'reCAPTCHA client element has been removed'
+      )
+    ) {
+
+      toast.error(
+        'Session expired. Please refresh the page.'
+      )
+
+    } else if (
+      err.message?.includes(
+        'reCAPTCHA has already been rendered'
+      )
+    ) {
+
+      toast.error(
+        'Verification already initialized. Please refresh.'
+      )
+
+    } else {
+
+      toast.error(
+        err.response?.data?.message ||
+        'Failed to send OTP'
+      )
+    }
   }
+
+  setLoading(false)
+}
+
+
 
   const onVerifyOtp = async (data) => {
 
-    setLoading(true)
+  setLoading(true)
 
-    try {
+  try {
 
-      let firebaseToken = null
+    let firebaseToken = null
 
-      if (
-        useFirebase &&
-        confirmationResult
-      ) {
+    if (
+      useFirebase &&
+      confirmationResult
+    ) {
 
-        // Verify with Firebase
-        const result =
-          await confirmationResult.confirm(
-            data.otp
-          )
+      // Verify OTP with Firebase
+      const result =
+        await confirmationResult.confirm(
+          data.otp
+        )
 
-        firebaseToken =
-          await result.user.getIdToken()
+      firebaseToken =
+        await result.user.getIdToken()
+    }
+
+    const res = await api.post(
+      '/auth/verify-otp',
+      {
+        phone,
+        otp: data.otp,
+        firebaseToken,
       }
+    )
 
-      const res = await api.post(
-        '/auth/verify-otp',
-        {
-          phone,
-          otp: data.otp,
-          firebaseToken,
-        }
+    login(
+      res.data.user,
+      res.data.token
+    )
+
+    toast.success(
+      `Welcome ${res.data.user.name}!`
+    )
+
+    // Clear old reCAPTCHA
+    window.recaptchaVerifier = null
+
+    navigate(
+      res.data.user.role === 'admin'
+        ? '/admin'
+        : '/home'
+    )
+
+  } catch (err) {
+
+    console.log(err)
+
+    if (
+      err.code ===
+      'auth/invalid-verification-code'
+    ) {
+
+      toast.error(
+        'Invalid OTP. Please try again.'
       )
 
-      login(res.data.user, res.data.token)
+    } else if (
+      err.code ===
+      'auth/code-expired'
+    ) {
 
-      toast.success(
-        `Welcome ${res.data.user.name}!`
+      toast.error(
+        'OTP expired. Request a new OTP.'
       )
 
-      navigate(
-        res.data.user.role === 'admin'
-          ? '/admin'
-          : '/home'
+    } else if (
+      err.code ===
+      'auth/session-expired'
+    ) {
+
+      toast.error(
+        'Session expired. Please resend OTP.'
       )
 
-    } catch (err) {
+    } else if (
+      err.code ===
+      'auth/network-request-failed'
+    ) {
+
+      toast.error(
+        'Network error. Check your internet.'
+      )
+
+    } else if (
+      err.message?.includes(
+        'reCAPTCHA client element has been removed'
+      )
+    ) {
+
+      toast.error(
+        'Verification session expired. Refresh page and try again.'
+      )
+
+    } else {
 
       toast.error(
         err.response?.data?.message ||
-          err.message ||
-          'Invalid OTP'
+        'OTP verification failed'
       )
     }
-
-    setLoading(false)
   }
+
+  setLoading(false)
+}
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
