@@ -77,7 +77,7 @@ const MyOrders = () => {
       } catch (err) {
 
         toast.error(
-          'Failed to load orders'
+          'Failed to load orders' , err
         )
       }
 
@@ -234,6 +234,16 @@ const MyOrders = () => {
                           ₹{' '}
                           {order.totalAmount}
                         </span>
+
+                        {order.paymentStatus === 'paid' ? (
+  <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">
+    Paid ✓
+  </span>
+) : (
+  <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold">
+    Payment Pending
+  </span>
+)}
 
                         {isExpanded ? (
 

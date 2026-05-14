@@ -75,48 +75,158 @@ const Cart = () => {
     toast.success('Item removed')
   }
 
-  const handlePlaceOrder = async () => {
-    if (cart.length === 0)
-      return toast.error('Cart is empty')
 
-    if (
-      !address.street ||
-      !address.city ||
-      !address.state ||
-      !address.pincode
-    ) {
-      return toast.error(
-        'Please fill all address fields'
-      )
+const loadRazorpay = () => {
+  return new Promise((resolve) => {
+    const script = document.createElement('script')
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+    script.onload = () => resolve(true)
+    script.onerror = () => resolve(false)
+    document.body.appendChild(script)
+  })
+}
+
+const handlePayment = async (order) => {
+  const loaded = await loadRazorpay()
+  if (!loaded) {
+    toast.error('Failed to load payment gateway')
+    return
+  }
+
+  try {
+    const res = await api.post('/payments/create-order', { orderId: order._id })
+
+    const options = {
+      key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+      amount: res.data.amount,
+      currency: res.data.currency,
+      name: 'Escorts Kubota',
+      description: `Order ${order.orderId}`,
+      image: '/logo-1.jpeg',
+      order_id: res.data.razorpayOrderId,
+      handler: async (response) => {
+        try {
+          await api.post('/payments/verify', {
+            razorpayOrderId: response.razorpay_order_id,
+            razorpayPaymentId: response.razorpay_payment_id,
+            razorpaySignature: response.razorpay_signature,
+            orderId: order._id,
+          })
+          toast.success('Payment successful! 🎉')
+          navigate('/my-orders')
+        } catch (err) {
+          toast.error('Payment verification failed')
+        }
+      },
+      prefill: {
+        name: user?.name,
+        contact: user?.phone,
+        email: user?.email,
+      },
+      theme: { color: '#f59e0b' },
+      modal: {
+        ondismiss: () => toast.error('Payment cancelled'),
+      }
     }
 
-    setLoading(true)
+    const razor = new window.Razorpay(options)
+    razor.open()
 
-    try {
-      await api.post('/orders', {
-        items: cart.map((item) => ({
-          product: item.product,
-          quantity: item.quantity,
-          size: item.size,
-        })),
-        shippingAddress: address,
-      })
+  } catch (err) {
+    toast.error(err.response?.data?.message || 'Payment failed')
+  }
+}
 
-      localStorage.removeItem('cart')
-      setCart([])
+ const handlePlaceOrder = async () => {
+  if (cart.length === 0) return toast.error('Cart is empty')
+  if (!address.street || !address.city || !address.state || !address.pincode) {
+    return toast.error('Please fill all address fields')
+  }
 
-      toast.success('Order placed successfully!')
+  setLoading(true)
 
-      navigate('/my-orders')
-    } catch (err) {
-      toast.error(
-        err.response?.data?.message ||
-          'Failed to place order'
-      )
-    }
+  const loaded = await loadRazorpay()
+  if (!loaded) {
+    toast.error('Failed to load payment gateway')
+    setLoading(false)
+    return
+  }
+
+  try {
+    // 1. Create temp Razorpay order (NO DB order yet)
+    const amountTotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0)
+
+    const razorpayRes = await api.post('/payments/create-temp-order', {
+      amount: amountTotal,
+    })
 
     setLoading(false)
+
+    // 2. Open Razorpay
+    const options = {
+      key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+      amount: razorpayRes.data.amount,
+      currency: 'INR',
+      name: 'Escorts Kubota',
+      description: 'Merchandise Order',
+      image: '/logo-1.jpeg',
+      order_id: razorpayRes.data.razorpayOrderId,
+      handler: async (response) => {
+        // 3. Payment SUCCESS → now create order in DB
+        try {
+          const orderRes = await api.post('/orders', {
+            items: cart.map((item) => ({
+              product: item.product,
+              quantity: item.quantity,
+              size: item.size,
+            })),
+            shippingAddress: address,
+            razorpayOrderId: response.razorpay_order_id,
+            razorpayPaymentId: response.razorpay_payment_id,
+            razorpaySignature: response.razorpay_signature,
+          })
+
+          // 4. Verify payment
+          await api.post('/payments/verify', {
+            razorpayOrderId: response.razorpay_order_id,
+            razorpayPaymentId: response.razorpay_payment_id,
+            razorpaySignature: response.razorpay_signature,
+            orderId: orderRes.data.order._id,
+          })
+
+          // 5. Clear cart only after successful payment
+          localStorage.removeItem('cart')
+          setCart([])
+          toast.success('Payment successful! Order placed 🎉')
+          navigate('/my-orders')
+
+        } catch (err) {
+          toast.error('Order creation failed after payment. Contact support.')
+        }
+      },
+      prefill: {
+        name: user?.name,
+        contact: user?.phone,
+        email: user?.email || '',
+      },
+      theme: { color: '#f59e0b' },
+      modal: {
+        ondismiss: () => {
+          // Payment cancelled — cart stays intact
+          toast.error('Payment cancelled. Your cart is saved.')
+          setLoading(false)
+        }
+      }
+    }
+
+    const razor = new window.Razorpay(options)
+    razor.open()
+
+  } catch (err) {
+    toast.error(err.response?.data?.message || 'Something went wrong')
+    setLoading(false)
   }
+}
 
   useEffect(() => {
     const fetchUserAddress = async () => {
