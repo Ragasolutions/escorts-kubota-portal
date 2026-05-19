@@ -33,7 +33,9 @@ app.use(morgan('dev'));
 app.use(cors({
   origin: [
      "http://localhost:5173",
-    "https://escorts-kubota-portall.vercel.app" 
+     "http://style4u.co.in",
+      "https://www.style4u.co.in",
+    "https://escorts-kubota-portall.vercel.app",
  ],
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
