@@ -9,7 +9,7 @@ import {
   ShoppingCart,
   Zap,
 } from 'lucide-react'
-
+import { Ruler } from 'lucide-react'
 const ProductDetail = () => {
 
   const { id } = useParams()
@@ -30,6 +30,9 @@ const ProductDetail = () => {
       localStorage.getItem('cart')
     ) || []
   )
+
+  const [showSizeGuide, setShowSizeGuide] =
+  useState(false);
 
   useEffect(() => {
 
@@ -163,7 +166,32 @@ const ProductDetail = () => {
         )
       : null
 
+const sizeGuideImages = {
+  "male-full-sleeve-shirt":
+    "/size-guides/male-full-sleeve-shirt.jpg",
+
+  "male-half-sleeve-shirt":
+    "/size-guides/male-half-sleeve-shirt.jpg",
+
+  "female-3-4-sleeve-shirt":
+    "/size-guides/female-3-4-sleeve-shirt.jpg",
+
+  "trouser-male":
+    "/size-guides/trouser-male.jpg",
+
+  "trouser-female":
+    "/size-guides/trouser-female.jpg",
+
+  "workshop-supervisor-jacket":
+    "/size-guides/workshop-supervisor-jacket.jpg",
+
+  "workshop-mechanics-top-lower":
+    "/size-guides/workshop-mechanics-top-lower.jpg",
+}
+
   if (loading)
+
+
     return (
 
       <div className="min-h-screen bg-white">
@@ -366,6 +394,18 @@ const ProductDetail = () => {
                   : 'Out of stock'}
               </p>
             </div>
+
+{product.sizeGuideType && (
+  <button
+    onClick={() =>
+      setShowSizeGuide(true)
+    }
+    className="mb-5 flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-amber-100 transition"
+  >
+    <Ruler size={16} />
+    View Size Guide
+  </button>
+)}
 
             <div className="border-t border-gray-100 mb-5" />
 
@@ -571,6 +611,33 @@ const ProductDetail = () => {
           </div>
         </div>
       </div>
+
+
+      {showSizeGuide && (
+  <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+    <div className="bg-white rounded-2xl p-4 max-w-4xl w-full relative">
+
+      <button
+        onClick={() =>
+          setShowSizeGuide(false)
+        }
+        className="absolute top-3 right-3 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200"
+      >
+        ✕
+      </button>
+
+      <img
+        src={
+          sizeGuideImages[
+            product.sizeGuideType
+          ]
+        }
+        alt="Size Guide"
+        className="w-full h-auto rounded-xl"
+      />
+    </div>
+  </div>
+)}
 
       {/* Footer */}
       <footer className="border-t border-gray-200 mt-10 py-4 px-4 sm:px-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-gray-400 text-center md:text-left">

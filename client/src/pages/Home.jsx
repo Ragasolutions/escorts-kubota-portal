@@ -24,12 +24,14 @@ const categories = [
 ]
 
 const brands = [
-  'Construction Equipment',
+  'Powertrac',
   'Farmtrac',
+  'Kubota',
+  'Construction Equipment',
   'GENSET',
   'HO',
-  'Kubota',
-  'Powertrac',
+  
+  
 ]
 
 const ITEMS_PER_PAGE_OPTIONS = [12, 24, 48]

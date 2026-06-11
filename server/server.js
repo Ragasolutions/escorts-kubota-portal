@@ -15,6 +15,8 @@ const productRoutes = require('./routes/product.routes');
 const orderRoutes = require('./routes/order.routes');
 const userRoutes = require('./routes/user.routes');
 const paymentRoutes = require('./routes/payment.routes')
+const contactRoutes = require('./routes/contactRoutes');
+const Settings = require('./models/Settings');
 
 const app = express();
 connectDB();
@@ -58,7 +60,18 @@ app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/payments', paymentRoutes)
+app.use('/api/contact', contactRoutes);
 
+app.get('/create-settings', async (req, res) => {
+
+  const settings =
+    await Settings.create({
+      rebatePercent: 60,
+    });
+
+  res.json(settings);
+
+});
 
 // ─── Routes (will be added one by one) ────────────
 // app.use('/api/auth',     require('./routes/auth.routes'));

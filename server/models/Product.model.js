@@ -27,6 +27,12 @@ const productSchema = new mongoose.Schema(
   ],
   required: true,
     },
+
+hsnCode: {
+  type: String,
+  trim: true,
+},
+
     brand: {
   type: String,
   enum: [
@@ -52,6 +58,20 @@ const productSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+
+    sizeGuideType: {
+  type: String,
+  enum: [
+    'male-full-sleeve-shirt',
+    'male-half-sleeve-shirt',
+    'female-3-4-sleeve-shirt',
+    'trouser-male',
+    'trouser-female',
+    'workshop-supervisor-jacket',
+    'workshop-mechanics-top-lower',
+  ],
+  default: null,
+},
     images: [
       {
         url: { type: String, required: true },

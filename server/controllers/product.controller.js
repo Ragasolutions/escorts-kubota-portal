@@ -85,8 +85,19 @@ exports.getProduct = async (req, res, next) => {
 
 exports.createProduct = async (req, res, next) => {
   try {
-    const { name, description, category, brand, price, originalPrice, sizes, stock, badge } = req.body;
-
+const {
+  name,
+  description,
+  category,
+  brand,
+  price,
+  originalPrice,
+  sizes,
+  stock,
+  badge,
+  sizeGuideType,
+  hsnCode,
+} = req.body;
     if (!name || !category || !price) {
       return res
         .status(400)
@@ -101,6 +112,7 @@ exports.createProduct = async (req, res, next) => {
       description,
       category,
         brand,
+        hsnCode,
       price,
       originalPrice,
       sizes: sizes
@@ -110,6 +122,7 @@ exports.createProduct = async (req, res, next) => {
         : [],
       stock: stock || 0,
       badge,
+        sizeGuideType,
     });
 
     res.status(201).json({ success: true, product });

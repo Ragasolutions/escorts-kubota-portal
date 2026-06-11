@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import Navbar from '../components/Navbar'
 import toast from 'react-hot-toast'
+import { useAuth } from '../context/AuthContext'
 import {
   Package,
   MapPin,
   ChevronDown,
   ChevronUp,
 } from 'lucide-react'
+
 
 const statusConfig = {
   'Order Received': {
@@ -59,9 +61,10 @@ const MyOrders = () => {
 
   const [expanded, setExpanded] =
     useState(null)
-
+const [downloadingInvoice, setDownloadingInvoice] =
+  useState(null)
   const navigate = useNavigate()
-
+const { token } = useAuth()
   useEffect(() => {
 
     const fetchOrders = async () => {
@@ -97,6 +100,58 @@ const MyOrders = () => {
     (acc, item) => acc + item.quantity,
     0
   )
+
+ const handleInvoiceDownload = async (
+  orderId
+) => {
+  try {
+
+    setDownloadingInvoice(orderId)
+
+    const response = await api.get(
+      `${import.meta.env.VITE_API_URL}/orders/${orderId}/invoice`,
+      {
+        responseType: 'blob',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    )
+
+    const url = window.URL.createObjectURL(
+      new Blob([response.data])
+    )
+
+    const link =
+      document.createElement('a')
+
+    link.href = url
+
+    link.download =
+      `Invoice-${orderId}.pdf`
+
+    document.body.appendChild(link)
+
+    link.click()
+
+    link.remove()
+
+    window.URL.revokeObjectURL(url)
+
+  } catch (error) {
+
+    console.error(error)
+
+    toast.error(
+      'Failed to download invoice'
+    )
+
+  } finally {
+
+    setDownloadingInvoice(null)
+
+  }
+}
 
   return (
     <div className="min-h-screen bg-white">
@@ -230,10 +285,15 @@ const MyOrders = () => {
                           {order.status}
                         </span>
 
-                        <span className="font-black text-gray-900 text-sm sm:text-base">
-                          ₹{' '}
-                          {order.totalAmount}
-                        </span>
+                        <div className="text-right">
+  <p className="text-[11px] text-gray-500">
+    Final Amount
+  </p>
+
+  <p className="font-black text-green-600 text-lg">
+    ₹ {order.finalAmount || order.totalAmount}
+  </p>
+</div>
 
                         {order.paymentStatus === 'paid' ? (
   <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">
@@ -394,65 +454,151 @@ const MyOrders = () => {
 
                                   <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded mt-1 inline-block">
 
-                                    Size:{' '}
+                                    Size:
                                     {item.size}
                                   </span>
                                 )}
                               </div>
 
-                              <div className="text-left sm:text-right">
+                             <div className="text-left sm:text-right">
 
-                                <p className="text-sm font-black text-gray-800">
-                                  ₹ {item.price}
-                                </p>
+  <p className="text-xs text-gray-500">
+    Qty: {item.quantity}
+  </p>
 
-                                <p className="text-xs text-gray-400">
-                                  x
-                                  {
-                                    item.quantity
-                                  }
-                                </p>
-                              </div>
+  <p className="text-sm font-black text-gray-800">
+    ₹ {(item.price * item.quantity).toFixed(2)}
+  </p>
+
+</div>
                             </div>
                           )
                         )}
                       </div>
 
+                      <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4">
+
+  <h3 className="font-bold text-gray-800 mb-3">
+    Order Summary
+  </h3>
+
+  <div className="space-y-2 text-sm">
+
+
+<div className="flex justify-between">
+  <span>Basic Amount</span>
+  <span>₹ {order.basicAmount}</span>
+</div>
+
+<div className="flex justify-between text-green-600">
+  <span>
+    Rebate ({order.rebatePercent}%)
+  </span>
+  <span>
+    - ₹ {order.rebateAmount}
+  </span>
+</div>
+
+<div className="flex justify-between">
+  <span>{order.gstType}</span>
+  <span>
+    + ₹ {order.gstAmount}
+  </span>
+</div>
+
+<div className="border-t pt-2 flex justify-between font-black text-base">
+
+  <span>Final Amount</span>
+
+  <span className="text-green-600">
+    ₹ {order.finalAmount}
+  </span>
+
+</div>
+
+
+  </div>
+
+</div>
+
+
                       {/* Address */}
-                      <div className="bg-white border border-gray-100 rounded-lg p-3 flex items-start gap-2">
+                     <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4">
 
-                        <MapPin
-                          size={14}
-                          className="text-amber-500 shrink-0 mt-0.5"
-                        />
+  <div className="flex items-center gap-2 mb-3">
 
-                        <p className="text-xs text-gray-500 break-words leading-relaxed">
 
-                          {
-                            order
-                              .shippingAddress
-                              ?.street
-                          }
-                          ,{' '}
-                          {
-                            order
-                              .shippingAddress
-                              ?.city
-                          }
-                          ,{' '}
-                          {
-                            order
-                              .shippingAddress
-                              ?.state
-                          }{' '}
-                          -{' '}
-                          {
-                            order
-                              .shippingAddress
-                              ?.pincode
-                          }
-                        </p>
-                      </div>
+<MapPin
+  size={16}
+  className="text-amber-500"
+/>
+
+<h3 className="font-bold text-gray-800">
+  Delivery Address
+</h3>
+
+
+  </div>
+
+  <p className="text-sm text-gray-600 leading-6">
+
+
+{order.shippingAddress?.street}
+
+<br />
+
+{order.shippingAddress?.city},
+
+{order.shippingAddress?.state}
+
+<br />
+
+{order.shippingAddress?.pincode}
+
+<br />
+
+Phone:
+
+{order.shippingAddress?.phone}
+
+
+  </p>
+
+</div>
+
+{order.paymentStatus === 'paid' && (
+
+<button
+onClick={() =>
+handleInvoiceDownload(
+order._id
+)
+}
+disabled={
+downloadingInvoice ===
+order._id
+}
+className={`w-full py-3 rounded-xl font-semibold transition ${
+      downloadingInvoice ===
+      order._id
+        ? 'bg-gray-400 cursor-not-allowed text-white'
+        : 'bg-green-600 hover:bg-green-700 text-white'
+    }`}
+
+>
+
+
+{downloadingInvoice ===
+order._id
+  ? 'Preparing Invoice...'
+  : 'Download Invoice'}
+
+
+  </button>
+
+)}
+
+
                     </div>
                   )}
                 </div>

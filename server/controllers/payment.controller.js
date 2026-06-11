@@ -17,14 +17,14 @@ exports.createOrder = async (req, res, next) => {
     }
 
     const razorpayOrder = await razorpay.orders.create({
-      amount: order.totalAmount * 100, // paise
-      currency: 'INR',
-      receipt: order.orderId,
-      notes: {
-        orderId: order._id.toString(),
-        userId: req.user.id,
-      }
-    })
+  amount: Math.round(order.finalAmount * 100),
+  currency: 'INR',
+  receipt: order.orderId,
+  notes: {
+    orderId: order._id.toString(),
+    userId: req.user.id,
+  }
+})
 
     // Save razorpay order id
     order.razorpayOrderId = razorpayOrder.id

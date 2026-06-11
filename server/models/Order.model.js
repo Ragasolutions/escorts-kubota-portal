@@ -9,6 +9,7 @@ const orderItemSchema = new mongoose.Schema({
   name: String,
   image: String,
   size: String,
+  hsnCode: String,
   quantity: {
     type: Number,
     required: true,
@@ -36,6 +37,43 @@ const orderSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+
+    basicAmount: {
+  type: Number,
+  default: 0,
+},
+
+rebatePercent: {
+  type: Number,
+  default: 0,
+},
+
+rebateAmount: {
+  type: Number,
+  default: 0,
+},
+
+gstType: {
+  type: String,
+  enum: ['CGST_SGST', 'IGST'],
+  default: 'CGST_SGST',
+},
+
+gstPercent: {
+  type: Number,
+  default: 0,
+},
+
+gstAmount: {
+  type: Number,
+  default: 0,
+},
+
+finalAmount: {
+  type: Number,
+  default: 0,
+},
+
     shippingAddress: {
       name: String,
       phone: String,

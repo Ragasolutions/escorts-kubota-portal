@@ -69,29 +69,25 @@ const Navbar = ({ cartCount = 0 }) => {
       {/* <div className="hidden lg:block w-px h-10 bg-white bg-opacity-10"></div> */}
 
       {/* Style4U Logo */}
-      <a
-        href=""
-        target="_blank"
-        rel="noopener noreferrer"
-        className="hidden sm:flex items-center gap-2 bg-white rounded-xl px-3 py-2 shadow-lg hover:scale-[1.02] transition shrink-0"
-      >
+      <div className="hidden sm:flex items-center gap-3 shrink-0">
 
-        <img
-          src="/Escorts-eddal.png"
-          alt="Style4U"
-          className="h-12 w-auto object-contain"
-        />
+  <div className="bg-white rounded-xl px-4 py-2 shadow-lg hover:scale-[1.02] transition">
+    <img
+      src="/eddal-logo.png"
+      alt="EDDAL"
+      className="h-12 w-auto object-contain"
+    />
+  </div>
 
-        {/* <div className="hidden xl:block">
-          <p className="text-[11px] font-black text-gray-800 leading-none">
-            STYLE4U
-          </p>
+  <div className="bg-white rounded-xl px-4 py-2 shadow-lg hover:scale-[1.02] transition">
+    <img
+      src="/escorts-kubota-logo.png"
+      alt="Escorts Kubota Limited"
+      className="h-12 w-auto object-contain"
+    />
+  </div>
 
-          <p className="text-[10px] text-gray-500 mt-1">
-            Official Uniform Partner
-          </p>
-        </div> */}
-      </a>
+</div>
     </div>
 
     {/* Right Contact */}
@@ -172,6 +168,7 @@ style4ufbd@gmail.com
               {[
                 { path: '/home', label: 'Home', icon: ShoppingBag },
                 { path: '/my-orders', label: 'My Order', icon: ClipboardList },
+                { path: '/contact', label: 'Contact Us ', icon: Phone },
               ].map((item) => (
                 <Link
                   key={item.path}

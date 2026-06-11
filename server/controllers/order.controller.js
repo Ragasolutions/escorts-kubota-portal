@@ -1,6 +1,8 @@
 const Order = require('../models/Order.model');
 const Product = require('../models/Product.model');
-
+const User = require('../models/User.model');
+const Settings = require('../models/Settings');
+const generateInvoice = require('../utils/generateInvoice');
 // ─── @desc    Place a new order ─────────────────────────────
 // ─── @route   POST /api/orders ──────────────────────────────
 // ─── @access  Private ───────────────────────────────────────
@@ -52,10 +54,41 @@ exports.placeOrder = async (req, res, next) => {
         image: product.images[0]?.url || '', // snapshot first image
         size: item.size || '',
         quantity: item.quantity,
+        hsnCode: product.hsnCode || '',
       });
 
       totalAmount += product.price * item.quantity;
     }
+
+const user = await User.findById(req.user.id);
+
+const settings = await Settings.findOne();
+
+const rebatePercent =
+  settings?.rebatePercent || 0;
+
+const basicAmount = totalAmount;
+
+const rebateAmount =
+  (basicAmount * rebatePercent) / 100;
+
+let gstType = 'IGST';
+
+if (
+  user?.state?.trim().toLowerCase() ===
+  'haryana'
+) {
+  gstType = 'CGST_SGST';
+}
+
+const gstPercent = 5;
+
+const gstAmount =
+  (basicAmount * gstPercent) / 100;
+
+const finalAmount =
+  (basicAmount - rebateAmount) +
+  gstAmount;
 
     // 4. Create the order
     const order = await Order.create({
@@ -63,6 +96,18 @@ exports.placeOrder = async (req, res, next) => {
       items: orderItems,
       totalAmount,
       shippingAddress,
+
+
+  basicAmount,
+  rebatePercent,
+  rebateAmount,
+
+  gstType,
+  gstPercent,
+  gstAmount,
+
+  finalAmount,
+
     });
 
     // 5. Deduct stock for each product
@@ -78,6 +123,137 @@ exports.placeOrder = async (req, res, next) => {
     next(error);
   }
 };
+
+
+
+exports.calculateOrder = async (req, res, next) => {
+  try {
+    const { items } = req.body;
+
+    if (!items || !items.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'No items provided',
+      });
+    }
+
+    const productIds = items.map((i) => i.product);
+
+    const products = await Product.find({
+      _id: { $in: productIds },
+      isActive: true,
+    });
+
+    let basicAmount = 0;
+
+    for (const item of items) {
+      const product = products.find(
+        (p) => p._id.toString() === item.product
+      );
+
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          message: 'Product not found',
+        });
+      }
+
+      basicAmount +=
+        product.price * item.quantity;
+    }
+
+    const settings =
+      await Settings.findOne();
+
+    const rebatePercent =
+      settings?.rebatePercent || 0;
+
+    const rebateAmount =
+      (basicAmount * rebatePercent) / 100;
+
+    const user =
+      await User.findById(req.user.id);
+
+    let gstType = 'IGST';
+
+    if (
+      user?.state?.trim().toLowerCase() ===
+      'haryana'
+    ) {
+      gstType = 'CGST_SGST';
+    }
+
+    const gstPercent = 5;
+
+    const gstAmount =
+      (basicAmount * gstPercent) / 100;
+
+    const finalAmount =
+      basicAmount -
+      rebateAmount +
+      gstAmount;
+
+    res.status(200).json({
+      success: true,
+
+      basicAmount,
+
+      rebatePercent,
+      rebateAmount,
+
+      gstType,
+      gstPercent,
+      gstAmount,
+
+      finalAmount,
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.downloadInvoice = async (
+  req,
+  res,
+  next
+) => {
+  try {
+
+    const order = await Order.findById(
+      req.params.id
+    ).populate(
+      'user',
+      'name dealershipName phone email address city state code'
+    );
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found',
+      });
+    }
+
+    if (
+      req.user.role !== 'admin' &&
+      order.user._id.toString() !== req.user.id
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized',
+      });
+    }
+
+    await generateInvoice(
+      order,
+      res
+    );
+
+  } catch (error) {
+    next(error);
+  }
+};
+
 
 // ─── @desc    Get logged-in user's orders ───────────────────
 // ─── @route   GET /api/orders/my ────────────────────────────

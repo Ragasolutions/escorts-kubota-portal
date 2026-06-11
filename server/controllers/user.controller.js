@@ -104,6 +104,14 @@ exports.bulkUploadUsers = async (req, res, next) => {
           row['Address'] || row['ADDRESS'] || ''
         ).toString().trim()
 
+         const city = (
+          row['CITY'] || row['City'] || ''
+        ).toString().trim()
+
+         const state = (
+          row['STATE'] || row['State'] || ''
+        ).toString().trim()
+
         // Skip if missing required fields
         if (!code || !phone) {
           results.skipped++
@@ -134,6 +142,8 @@ exports.bulkUploadUsers = async (req, res, next) => {
           phone,
           email: email || undefined,
           address: address || undefined,
+          city: city || undefined,
+          state: state || undefined,
           role: 'dealer',
           isActive: true,
         })

@@ -29,6 +29,23 @@ const Cart = () => {
     phone: user?.phone || '',
   })
 
+
+const [showAddressModal, setShowAddressModal] = useState(false)
+
+const [customAddress, setCustomAddress] = useState({
+  street: '',
+  city: '',
+  state: '',
+  pincode: '',
+  phone: user?.phone || '',
+})
+
+const [useCustomAddress, setUseCustomAddress] =
+  useState(false)
+const [pricing, setPricing] = useState(null)
+const [savedAddress, setSavedAddress] = useState('')
+const [savedAddressData, setSavedAddressData] =
+  useState(null)
   // Group cart items by product
   const groupedCart = useMemo(() => {
     const groups = {}
@@ -137,11 +154,39 @@ const handlePayment = async (order) => {
   }
 }
 
+const fetchPricing = async () => {
+  try {
+
+    const res = await api.post(
+      '/orders/calculate',
+      {
+        items: cart.map((item) => ({
+          product: item.product,
+          quantity: item.quantity,
+        })),
+      }
+    )
+
+    setPricing(res.data)
+
+  } catch (error) {
+    console.log(error)
+  }
+}
+
  const handlePlaceOrder = async () => {
   if (cart.length === 0) return toast.error('Cart is empty')
-  if (!address.street || !address.city || !address.state || !address.pincode) {
-    return toast.error('Please fill all address fields')
-  }
+  if (
+  useCustomAddress &&
+  (
+    !customAddress.street ||
+    !customAddress.city ||
+    !customAddress.state ||
+    !customAddress.pincode
+  )
+) {
+  return toast.error('Please fill all address fields')
+}
 
   setLoading(true)
 
@@ -154,12 +199,12 @@ const handlePayment = async (order) => {
 
   try {
     // 1. Create temp Razorpay order (NO DB order yet)
-    const amountTotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0)
-
-    const razorpayRes = await api.post('/payments/create-temp-order', {
-      amount: amountTotal,
-    })
-
+   const razorpayRes = await api.post(
+  '/payments/create-temp-order',
+  {
+    amount: pricing.finalAmount,
+  }
+)
     setLoading(false)
 
     // 2. Open Razorpay
@@ -174,13 +219,25 @@ const handlePayment = async (order) => {
       handler: async (response) => {
         // 3. Payment SUCCESS → now create order in DB
         try {
+        const finalAddress = useCustomAddress
+  ? customAddress
+ : {
+    street: savedAddressData?.street || '',
+    city: savedAddressData?.city || '',
+    state: savedAddressData?.state || '',
+    pincode: savedAddressData?.pincode || '',
+    phone: savedAddressData?.phone || user?.phone || '',
+  }
+console.log("USER", user)
+console.log("FINAL ADDRESS", finalAddress)
+
           const orderRes = await api.post('/orders', {
             items: cart.map((item) => ({
               product: item.product,
               quantity: item.quantity,
               size: item.size,
             })),
-            shippingAddress: address,
+            shippingAddress: finalAddress,
             razorpayOrderId: response.razorpay_order_id,
             razorpayPaymentId: response.razorpay_payment_id,
             razorpaySignature: response.razorpay_signature,
@@ -235,15 +292,25 @@ const handlePayment = async (order) => {
 
         const u = res.data.user
 
-        if (u.address) {
-          setAddress({
-            street: u.address || '',
-            city: '',
-            state: '',
-            pincode: '',
-            phone: u.phone || '',
-          })
-        }
+    if (u.address) {
+  setSavedAddress(u.address)
+
+  setSavedAddressData({
+    street: u.address,
+    city: u.city || '',
+    state: u.state || '',
+    pincode: '',
+    phone: u.phone || '',
+  })
+
+  setAddress({
+    street: u.address,
+    city: u.city || '',
+    state: u.state || '',
+    pincode: '',
+    phone: u.phone || '',
+  })
+}
       } catch (err) {
         console.log(
           'Could not fetch user address',
@@ -254,6 +321,15 @@ const handlePayment = async (order) => {
 
     fetchUserAddress()
   }, [])
+
+
+useEffect(() => {
+
+  if (cart.length > 0) {
+    fetchPricing()
+  }
+
+}, [cart])
 
   return (
     <div className="min-h-screen bg-white">
@@ -453,84 +529,99 @@ const handlePayment = async (order) => {
             <div className="w-full lg:w-72 xl:w-80 space-y-4">
 
               {/* Shipping Address */}
-              <div className="border border-gray-200 rounded-lg p-4">
+<div className="border border-gray-200 rounded-lg p-4">
 
-                <h3 className="font-black text-gray-800 mb-3 flex items-center gap-2 text-sm">
-                  <MapPin
-                    size={16}
-                    className="text-amber-500"
-                  />
-                  Shipping Address
-                </h3>
+  <h3 className="font-black text-gray-800 mb-3 flex items-center gap-2 text-sm">
+    <MapPin
+      size={16}
+      className="text-amber-500"
+    />
+    Shipping Address
+  </h3>
 
-                {/* Saved Address */}
-                {user?.address && (
+{savedAddress && (
+  <div className="border border-green-200 bg-green-50 rounded-lg p-3">
 
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">
+    <div className="flex items-center justify-between mb-2">
 
-                    <p className="text-xs font-bold text-amber-700 mb-1">
-                      Saved Address
-                    </p>
+      <p className="font-bold text-green-700 text-sm">
+        Registered Address
+      </p>
 
-                    <p className="text-xs text-gray-600">
-                      {user.address}
-                    </p>
+      {!useCustomAddress && (
+        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+          Selected
+        </span>
+      )}
 
-                    <button
-                      onClick={() =>
-                        setAddress({
-                          ...address,
-                          street: user.address,
-                        })
-                      }
-                      className="text-xs text-amber-600 font-bold mt-1 hover:underline"
-                    >
-                      Use this address →
-                    </button>
-                  </div>
-                )}
+    </div>
 
-                <div className="space-y-2">
+    <p className="text-sm text-gray-700 whitespace-pre-line">
+      {savedAddress}
+    </p>
 
-                  {[
-                    {
-                      key: 'street',
-                      placeholder:
-                        'Street / Area *',
-                    },
-                    {
-                      key: 'city',
-                      placeholder: 'City *',
-                    },
-                    {
-                      key: 'state',
-                      placeholder: 'State *',
-                    },
-                    {
-                      key: 'pincode',
-                      placeholder: 'Pincode *',
-                    },
-                    {
-                      key: 'phone',
-                      placeholder: 'Phone *',
-                    },
-                  ].map(({ key, placeholder }) => (
+    {savedAddressData && (
+      <p className="text-sm text-gray-700 mt-1">
+        {savedAddressData.city}, {savedAddressData.state}
+      </p>
+    )}
 
-                    <input
-                      key={key}
-                      placeholder={placeholder}
-                      value={address[key]}
-                      onChange={(e) =>
-                        setAddress({
-                          ...address,
-                          [key]: e.target.value,
-                        })
-                      }
-                      className="w-full border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-                    />
-                  ))}
-                </div>
-              </div>
+  </div>
+)}
+
+  {useCustomAddress && (
+    <div className="border border-amber-200 bg-amber-50 rounded-lg p-3 mt-3">
+
+      <div className="flex items-center justify-between mb-2">
+
+        <p className="font-bold text-amber-700 text-sm">
+          Different Address
+        </p>
+
+        <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded">
+          Selected
+        </span>
+      </div>
+
+      <p className="text-sm text-gray-700">
+        {customAddress.street}
+      </p>
+
+      <p className="text-sm text-gray-700">
+        {customAddress.city}, {customAddress.state}
+      </p>
+
+      <p className="text-sm text-gray-700">
+        {customAddress.pincode}
+      </p>
+
+      <p className="text-sm text-gray-700">
+        {customAddress.phone}
+      </p>
+    </div>
+  )}
+
+  <div className="mt-3 flex gap-2">
+
+    <button
+      onClick={() => setShowAddressModal(true)}
+      className="text-sm text-amber-600 font-semibold hover:underline"
+    >
+      + Add Different Address
+    </button>
+
+    {useCustomAddress && (
+      <button
+        onClick={() =>
+          setUseCustomAddress(false)
+        }
+        className="text-sm text-gray-500 hover:underline"
+      >
+        Use Registered Address
+      </button>
+    )}
+  </div>
+</div>
 
               {/* Order Summary */}
               <div className="border border-gray-200 rounded-lg p-4">
@@ -568,16 +659,48 @@ const handlePayment = async (order) => {
                   })}
                 </div>
 
-                <div className="border-t border-gray-100 mt-3 pt-3 flex justify-between">
+                <div className="border-t border-gray-100 mt-3 pt-3 space-y-2">
 
-                  <span className="font-black text-gray-800">
-                    Total
-                  </span>
+  <div className="flex justify-between text-sm">
+    <span>Basic Amount</span>
+    <span>
+      ₹ {pricing?.basicAmount?.toFixed(2) || '0.00'}
+    </span>
+  </div>
 
-                  <span className="font-black text-gray-900 text-lg">
-                    ₹ {total.toLocaleString()}
-                  </span>
-                </div>
+  <div className="flex justify-between text-sm text-green-600">
+    <span>
+      Rebate ({pricing?.rebatePercent || 0}%)
+    </span>
+
+    <span>
+      - ₹ {pricing?.rebateAmount?.toFixed(2) || '0.00'}
+    </span>
+  </div>
+
+  <div className="flex justify-between text-sm">
+    <span>
+      GST ({pricing?.gstPercent || 0}%)
+    </span>
+
+    <span>
+      + ₹ {pricing?.gstAmount?.toFixed(2) || '0.00'}
+    </span>
+  </div>
+
+  <div className="border-t pt-3 flex justify-between">
+
+    <span className="font-black text-gray-800">
+      Final Payable
+    </span>
+
+    <span className="font-black text-lg text-green-700">
+      ₹ {pricing?.finalAmount?.toFixed(2) || '0.00'}
+    </span>
+
+  </div>
+
+</div>
 
                 <button
                   onClick={handlePlaceOrder}
@@ -640,6 +763,103 @@ const handlePayment = async (order) => {
             Privacy & Policy
           </span>
         </div>
+
+        {showAddressModal && (
+  <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+
+    <div className="bg-white rounded-2xl w-full max-w-md p-5">
+
+      <h3 className="text-lg font-bold mb-4">
+        Add Different Address
+      </h3>
+
+      <div className="space-y-3">
+
+        <input
+          placeholder="Street / Area"
+          value={customAddress.street}
+          onChange={(e) =>
+            setCustomAddress({
+              ...customAddress,
+              street: e.target.value,
+            })
+          }
+          className="w-full border rounded px-3 py-2"
+        />
+
+        <input
+          placeholder="City"
+          value={customAddress.city}
+          onChange={(e) =>
+            setCustomAddress({
+              ...customAddress,
+              city: e.target.value,
+            })
+          }
+          className="w-full border rounded px-3 py-2"
+        />
+
+        <input
+          placeholder="State"
+          value={customAddress.state}
+          onChange={(e) =>
+            setCustomAddress({
+              ...customAddress,
+              state: e.target.value,
+            })
+          }
+          className="w-full border rounded px-3 py-2"
+        />
+
+        <input
+          placeholder="Pincode"
+          value={customAddress.pincode}
+          onChange={(e) =>
+            setCustomAddress({
+              ...customAddress,
+              pincode: e.target.value,
+            })
+          }
+          className="w-full border rounded px-3 py-2"
+        />
+
+        <input
+          placeholder="Phone"
+          value={customAddress.phone}
+          onChange={(e) =>
+            setCustomAddress({
+              ...customAddress,
+              phone: e.target.value,
+            })
+          }
+          className="w-full border rounded px-3 py-2"
+        />
+      </div>
+
+      <div className="flex justify-end gap-2 mt-5">
+
+        <button
+          onClick={() =>
+            setShowAddressModal(false)
+          }
+          className="px-4 py-2 border rounded"
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={() => {
+            setUseCustomAddress(true)
+            setShowAddressModal(false)
+          }}
+          className="px-4 py-2 bg-amber-500 text-black rounded font-semibold"
+        >
+          Save Address
+        </button>
+      </div>
+    </div>
+  </div>
+)}
       </footer>
     </div>
   )

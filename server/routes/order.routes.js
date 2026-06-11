@@ -6,13 +6,26 @@ const {
   getOrderById,
   getAllOrders,
   updateOrderStatus,
+  calculateOrder,
+  downloadInvoice,
 } = require('../controllers/order.controller');
 
 const { protect, adminOnly } = require('../middleware/auth.middleware');
 
 // Dealer / Employee
+router.post(
+  '/calculate',
+  protect,
+  calculateOrder
+);
+
 router.post('/',      protect, placeOrder);
 router.get('/my',     protect, getMyOrders);
+router.get(
+  '/:id/invoice',
+  protect,
+  downloadInvoice
+);
 router.get('/:id',    protect, getOrderById);
 
 // Admin only

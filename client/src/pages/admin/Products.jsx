@@ -116,11 +116,14 @@ const Products = () => {
     description: "",
     category: "",
     brand: "",
+    hsnCode: "",
     price: "",
     originalPrice: "",
     stock: "",
     badge: "",
     sizes: "",
+      sizeGuideType: "",
+
   });
 
   const sensors = useSensors(
@@ -270,6 +273,7 @@ const Products = () => {
         product.description || "",
       category: product.category,
       brand: product.brand || "",
+      hsnCode: product.hsnCode || "",
       price: product.price,
       originalPrice:
         product.originalPrice || "",
@@ -277,6 +281,8 @@ const Products = () => {
       badge: product.badge || "",
       sizes:
         product.sizes?.join(", ") || "",
+          sizeGuideType: product.sizeGuideType || "",
+
     });
 
     setImages([]);
@@ -421,11 +427,13 @@ const Products = () => {
       description: "",
       category: "",
       brand: "",
+      hsnCode: "",
       price: "",
       originalPrice: "",
       stock: "",
       badge: "",
       sizes: "",
+      sizeGuideType: "",
     });
   };
 
@@ -551,6 +559,64 @@ const Products = () => {
                     </option>
                   ))}
                 </select>
+
+                <input
+  placeholder="HSN Code"
+  value={form.hsnCode}
+  onChange={(e) =>
+    setForm({
+      ...form,
+      hsnCode: e.target.value,
+    })
+  }
+  className="border border-gray-200 rounded-xl px-3 py-3 sm:py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+/>
+
+
+
+<select
+  value={form.sizeGuideType}
+  onChange={(e) =>
+    setForm({
+      ...form,
+      sizeGuideType: e.target.value,
+    })
+  }
+  className="border border-gray-200 rounded-xl px-3 py-3 sm:py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white sm:col-span-2"
+>
+  <option value="">
+    Select Size Guide
+  </option>
+
+  <option value="male-full-sleeve-shirt">
+    Male Full Sleeve Shirt
+  </option>
+
+  <option value="male-half-sleeve-shirt">
+    Male Half Sleeve Shirt
+  </option>
+
+  <option value="female-3-4-sleeve-shirt">
+    Female 3/4 Sleeve Shirt
+  </option>
+
+  <option value="trouser-male">
+    Trouser Male
+  </option>
+
+  <option value="trouser-female">
+    Trouser Female
+  </option>
+
+  <option value="workshop-supervisor-jacket">
+    Workshop Supervisor Jacket
+  </option>
+
+  <option value="workshop-mechanics-top-lower">
+    Workshop Mechanics Top & Lower
+  </option>
+</select>
+
 
                 <input
                   placeholder="Price *"
@@ -801,6 +867,10 @@ const Products = () => {
                   </th>
 
                   <th className="px-5 py-3">
+  HSN
+</th>
+
+                  <th className="px-5 py-3">
                     Price
                   </th>
 
@@ -894,6 +964,10 @@ const Products = () => {
                         {product.brand ||
                           "-"}
                       </td>
+
+                      <td className="px-5 py-3 text-gray-500">
+  {product.hsnCode || "-"}
+</td>
 
                       <td className="px-5 py-3">
 
