@@ -45,6 +45,9 @@ const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false)
     name: "",
     phone: "",
     email: "",
+    address: "",
+  city: "",
+  state: "",
     role: "dealer",
   });
 
@@ -78,14 +81,23 @@ const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false)
   };
 
   const handleSubmit = async () => {
-    if (!form.code || !form.name || !form.phone || !form.role) {
-      return toast.error("Code, name, phone and role are required");
+    if (!form.code || !form.address || !form.city || !form.state || !form.name || !form.phone || !form.role) {
+      return toast.error("Code, name, phone , address, city, state and role are required");
     }
     try {
       await api.post("/users", form);
       toast.success("User created!");
       setShowForm(false);
-      setForm({ code: "", name: "", phone: "", email: "", role: "dealer" });
+setForm({
+  code: "",
+  name: "",
+  phone: "",
+  email: "",
+  address: "",
+  city: "",
+  state: "",
+  role: "dealer",
+});
       fetchUsers();
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to create user");
@@ -153,7 +165,9 @@ const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false)
       "Dealership Name",
       "Mobile No.",
       "Email-ID",
-      "Address",
+"Address",
+  "City",
+  "State",
     ];
 
     // 2. Sample row (helps user understand format)
@@ -165,6 +179,8 @@ const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false)
       "9876543210",
       "dealer@email.com",
       "Full Address Here",
+      "Dealer City",
+      "Dealer State",
     ];
 
     // 3. Create worksheet (header + sample)
@@ -177,6 +193,8 @@ const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false)
             { wch: 25 },
       { wch: 30 },
       { wch: 15 },
+      { wch: 20 },
+{ wch: 20 },
       { wch: 28 },
       { wch: 35 },
     ];
@@ -405,6 +423,43 @@ const handleBulkDelete = async () => {
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
                 />
+
+<input
+  placeholder="Address"
+  value={form.address}
+  onChange={(e) =>
+    setForm({
+      ...form,
+      address: e.target.value,
+    })
+  }
+  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+/>
+
+<input
+  placeholder="City"
+  value={form.city}
+  onChange={(e) =>
+    setForm({
+      ...form,
+      city: e.target.value,
+    })
+  }
+  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+/>
+
+<input
+  placeholder="State"
+  value={form.state}
+  onChange={(e) =>
+    setForm({
+      ...form,
+      state: e.target.value,
+    })
+  }
+  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+/>
+
                 <select
                   value={form.role}
                   onChange={(e) => setForm({ ...form, role: e.target.value })}
@@ -768,6 +823,8 @@ const handleBulkDelete = async () => {
           <p>• Mobile No. must be 10 digits</p>
           <p>• Name or Dealership Name is required</p>
           <p>• Email is optional but must be valid</p>
+          <p>• City is required</p>
+<p>• State is required</p>
 
           <div className="border-t my-2"></div>
 

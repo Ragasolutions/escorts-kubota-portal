@@ -113,11 +113,19 @@ exports.bulkUploadUsers = async (req, res, next) => {
         ).toString().trim()
 
         // Skip if missing required fields
-        if (!code || !phone) {
-          results.skipped++
-          results.errors.push(`Row skipped — missing code or phone: ${JSON.stringify(row)}`)
-          continue
-        }
+        if (
+  !code ||
+  !phone ||
+  !address ||
+  !city ||
+  !state
+) {
+  results.skipped++;
+  results.errors.push(
+    `Row skipped — Address, City or State missing: ${code}`
+  );
+  continue;
+}
 
         // Skip if name is missing
         if (!name && !dealershipName) {
@@ -210,15 +218,34 @@ exports.getUserById = async (req, res, next) => {
 
 exports.createUser = async (req, res, next) => {
   try {
-    const { code, name, phone, email, role, address } = req.body;
+
+const {
+  code,
+  name,
+  phone,
+  email,
+  role,
+  address,
+  city,
+  state,
+} = req.body;
 
     // 1. Required fields
-    if (!code || !name || !phone || !role) {
-      return res.status(400).json({
-        success: false,
-        message: 'Code, name, phone and role are required',
-      });
-    }
+   if (
+  !code ||
+  !name ||
+  !phone ||
+  !role ||
+  !address ||
+  !city ||
+  !state
+) {
+  return res.status(400).json({
+    success: false,
+    message:
+      'Code, Name, Phone, Address, City, State and Role are required',
+  });
+}
 
     // 2. Valid role check
     if (!['dealer', 'employee', 'admin'].includes(role)) {
@@ -255,13 +282,22 @@ exports.createUser = async (req, res, next) => {
 exports.updateUser = async (req, res, next) => {
   try {
     // Don't allow role/code to be changed silently — be explicit
-    const { name, phone, email, address } = req.body;
+const {
+  name,
+  phone,
+  email,
+  address,
+  city,
+  state,
+} = req.body;
 
     const updates = {};
     if (name)    updates.name = name;
     if (phone)   updates.phone = phone;
     if (email)   updates.email = email;
-    if (address) updates.address = address;
+if (address) updates.address = address;
+if (city) updates.city = city;
+if (state) updates.state = state;
 
     const user = await User.findByIdAndUpdate(
       req.params.id,
