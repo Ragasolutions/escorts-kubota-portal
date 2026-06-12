@@ -11,6 +11,7 @@ import {
   RecaptchaVerifier,
   signInWithPhoneNumber,
 } from 'firebase/auth'
+import { Link } from 'react-router-dom'
 
 // ─── Zod Schemas ─────────────────────────────────────────────
 
@@ -330,26 +331,25 @@ const Login = () => {
         {/* Top Logos */}
         <div className="relative z-10 flex items-center justify-between gap-4">
 
-          <div className="flex items-center gap-3 min-w-0">
+           <div className="hidden sm:flex items-center gap-3 shrink-0">
 
-            <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center shrink-0">
+  <div className="bg-white rounded-xl px-4 py-2 shadow-lg hover:scale-[1.02] transition">
+    <img
+      src="/eddal-logo.png"
+      alt="EDDAL"
+      className="h-12 w-auto object-contain"
+    />
+  </div>
 
-              <span className="text-white font-black text-sm">
-                EK
-              </span>
-            </div>
+  <div className="bg-white rounded-xl px-4 py-2 shadow-lg hover:scale-[1.02] transition">
+    <img
+      src="/escorts-kubota-logo.png"
+      alt="Escorts Kubota Limited"
+      className="h-12 w-auto object-contain"
+    />
+  </div>
 
-            <div className="min-w-0">
-
-              <p className="text-white font-black text-sm leading-none truncate">
-                Escorts Kubota
-              </p>
-
-              <p className="text-gray-500 text-xs truncate">
-                Merchandise Portal
-              </p>
-            </div>
-          </div>
+</div>
 
           <a
             href="https://orange-rat-828494.hostingersite.com/"
@@ -370,239 +370,100 @@ const Login = () => {
 
           <div className="w-16 h-1 bg-amber-500 mb-6 rounded-full" />
 
-          <h1 className="text-white text-3xl xl:text-4xl font-black leading-tight">
+         <h1 className="text-white text-3xl lg:text-4xl xl:text-5xl font-black leading-tight">
+  Welcome to
+  <br />
 
-            Welcome to the
-            <br />
+  <span className="text-amber-500">
+    Escorts Kubota Limited
+  </span>
 
-            <span className="text-amber-500">
-              Exclusive Portal
-            </span>
+  <br />
 
-            <br />
+  Dealership Manpower
+  <br />
 
-            For Escorts
-            <br />
+  Uniform Portal
+</h1>
 
-            Dealership Uniform
-          </h1>
-
-          <p className="text-gray-400 mt-4 text-sm leading-relaxed max-w-md">
+          {/* <p className="text-gray-400 mt-4 text-sm leading-relaxed max-w-md">
 
             Browse and order official Escorts Kubota
             branded merchandise exclusively for
             dealers and employees.
-          </p>
+          </p> */}
 
-          <div className="mt-8 space-y-3">
+         <div className="mt-8 space-y-3">
 
-            {[
-              'Official branded merchandise',
-              'Exclusive dealer pricing',
-              'Real-time order tracking',
-              'Secure OTP-based login',
-            ].map((feature) => (
+  {[
+    {
+      name: 'About Style4U',
+      path: '/about-style4u',
+    },
+    {
+      name: 'Privacy Policy',
+      path: '/privacy-policy',
+    },
+    {
+      name: 'Terms & Conditions',
+      path: '/terms-and-conditions',
+    },
+    {
+      name: 'Shipping & Delivery Policy',
+      path: '/shipping-delivery-policy',
+    },
+  ].map((item) => (
 
-              <div
-                key={feature}
-                className="flex items-center gap-3"
-              >
+    <Link
+      key={item.name}
+      to={item.path}
+      className="flex items-center gap-3 group"
+    >
 
-                <div className="w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center shrink-0">
+      <div className="w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center shrink-0">
 
-                  <svg
-                    className="w-3 h-3 text-black"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={3}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                </div>
+        <svg
+          className="w-3 h-3 text-black"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={3}
+            d="M5 13l4 4L19 7"
+          />
+        </svg>
 
-                <p className="text-gray-300 text-sm">
-                  {feature}
-                </p>
-              </div>
-            ))}
-          </div>
+      </div>
+
+      <p className="text-gray-300 text-base font-medium group-hover:text-amber-400 transition-colors">
+        {item.name}
+      </p>
+
+    </Link>
+
+  ))}
+
+</div>
         </div>
 
         {/* Footer */}
         <div className="relative z-10">
 
-          <p className="text-center text-xs text-gray-600 mb-2">
+          <p className="text-center text-md text-white mb-2">
             © 2024 Escorts Kubota Ltd. Powered by
-            Style For You
+            Style4u
           </p>
 
-          <div className="flex items-center justify-center gap-4 flex-wrap">
-
-            {[
-              'about',
-              'privacy',
-              'terms',
-            ].map((modal) => (
-
-              <button
-                key={modal}
-                onClick={() =>
-                  setShowModal(modal)
-                }
-                className="text-xs text-gray-500 hover:text-amber-500 transition capitalize"
-              >
-                {modal === 'about'
-                  ? 'About Us'
-                  : modal === 'privacy'
-                  ? 'Privacy Policy'
-                  : 'Terms & Conditions'}
-              </button>
-            ))}
-          </div>
+          <p className="text-center text-md text-white">
+            All Rights Reserved
+          </p>
+         
         </div>
 
-        {/* Modal */}
-        {showModal && (
-
-          <div className="fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center px-4">
-
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-y-auto">
-
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-
-                <h3 className="font-black text-gray-800">
-
-                  {showModal === 'about' &&
-                    'About Us'}
-
-                  {showModal === 'privacy' &&
-                    'Privacy Policy'}
-
-                  {showModal === 'terms' &&
-                    'Terms & Conditions'}
-                </h3>
-
-                <button
-                  onClick={() =>
-                    setShowModal(null)
-                  }
-                  className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 transition text-gray-500"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="px-6 py-5 text-sm text-gray-600 leading-relaxed">
-
-                {showModal === 'about' && (
-                  <>
-                    <p className="font-bold text-gray-800 mb-2">
-                      Escorts Kubota Merchandise
-                      Portal
-                    </p>
-
-                    <p>
-                      This portal is an exclusive
-                      internal platform for Escorts
-                      Kubota authorized dealers and
-                      employees to browse and order
-                      official branded merchandise.
-                    </p>
-
-                    <p className="mt-3">
-                      Powered by{' '}
-
-                      <span className="font-bold text-amber-600">
-                        Style For You (S4U)
-                      </span>
-                    </p>
-
-                    <p className="mt-3">
-                      📞 +91 96500 76390
-                      <br />
-                      ✉️ client.support@s4u.com
-                    </p>
-                  </>
-                )}
-
-                {showModal === 'privacy' && (
-                  <>
-                    <p className="font-bold text-gray-800 mb-2">
-                      Privacy Policy
-                    </p>
-
-                    <p>
-                      We collect only information
-                      necessary to process your
-                      orders — name, phone, dealer
-                      code, and shipping address.
-                      Your data is never sold or
-                      shared with third parties.
-                    </p>
-
-                    <p className="mt-4 text-xs text-gray-400">
-                      Last updated: March 2024
-                    </p>
-                  </>
-                )}
-
-                {showModal === 'terms' && (
-                  <>
-                    <p className="font-bold text-gray-800 mb-2">
-                      Terms & Conditions
-                    </p>
-
-                    <p>
-                      <span className="font-bold">
-                        1. Access:
-                      </span>{' '}
-                      Exclusively for authorized
-                      dealers and employees.
-                    </p>
-
-                    <p className="mt-2">
-                      <span className="font-bold">
-                        2. Orders:
-                      </span>{' '}
-                      Subject to availability.
-                      Once confirmed, cannot be
-                      cancelled.
-                    </p>
-
-                    <p className="mt-2">
-                      <span className="font-bold">
-                        3. Returns:
-                      </span>{' '}
-                      Accepted within 7 days for
-                      defective items only.
-                    </p>
-
-                    <p className="mt-4 text-xs text-gray-400">
-                      Last updated: March 2024
-                    </p>
-                  </>
-                )}
-              </div>
-
-              <div className="px-6 pb-5">
-
-                <button
-                  onClick={() =>
-                    setShowModal(null)
-                  }
-                  className="w-full bg-amber-500 hover:bg-amber-600 text-black py-2.5 rounded-xl text-sm font-bold transition"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        
       </div>
 
       {/* Right Panel */}
@@ -615,23 +476,15 @@ const Login = () => {
 
             <div className="flex items-center gap-2 min-w-0">
 
-              <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center shrink-0">
+             <div className="w-24 h-24 bg-white rounded-xl flex items-center justify-center p-1 shrink-0 border border-gray-200">
+  <img
+    src="/logo-1.jpeg"
+    alt="Escorts Kubota"
+    className="w-full h-full object-contain"
+  />
+</div>
 
-                <span className="text-white font-black text-sm">
-                  EK
-                </span>
-              </div>
-
-              <div className="min-w-0">
-
-                <p className="font-black text-gray-800 text-sm truncate">
-                  Escorts Kubota
-                </p>
-
-                <p className="text-gray-400 text-xs truncate">
-                  Merchandise Portal
-                </p>
-              </div>
+              
             </div>
 
             <img
@@ -650,11 +503,14 @@ const Login = () => {
               noValidate
             >
 
-              <h2 className="text-2xl font-black text-gray-800">
-                Welcome back 👋
-              </h2>
+              <h2 className="text-3xl font-black text-gray-800 leading-tight">
+  Access Your
+  <span className="block text-amber-500">
+    Uniform Portal
+  </span>
+</h2>
 
-              <p className="text-gray-500 text-sm mt-1 mb-6">
+              <p className="text-gray-500 text-md mt-1 mb-6">
                 Sign in with your registered
                 phone number
               </p>
@@ -707,7 +563,7 @@ const Login = () => {
               {/* Phone Input */}
               <div className="mb-5">
 
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                <label className="text-sm font-bold text-gray-500 uppercase tracking-widest">
 
                   Phone Number{' '}
 
@@ -805,7 +661,7 @@ const Login = () => {
                 )}
               </button>
 
-              <div className="mt-6 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+              {/* <div className="mt-6 p-3 bg-amber-50 border border-amber-200 rounded-xl">
 
                 <p className="text-xs text-amber-700 text-center">
 
@@ -815,9 +671,9 @@ const Login = () => {
                     123456
                   </span>
                 </p>
-              </div>
+              </div> */}
 
-              <p className="text-center text-xs text-gray-400 mt-4 leading-relaxed">
+              <p className="text-center text-md text-gray-400 mt-4 leading-relaxed">
 
                 Don't have an account?{' '}
 
@@ -841,7 +697,7 @@ const Login = () => {
                 Enter OTP 🔐
               </h2>
 
-              <p className="text-gray-500 text-sm mt-1 mb-8 leading-relaxed">
+              <p className="text-gray-500 text-md mt-1 mb-8 leading-relaxed">
 
                 Sent to{' '}
 

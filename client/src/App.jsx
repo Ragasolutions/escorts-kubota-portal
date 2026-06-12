@@ -2,6 +2,10 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./pages/Login";
+import AboutStyle4U from './pages/AboutStyle4U'
+import PrivacyPolicy from './pages/PrivacyPolicy'
+import TermsConditions from './pages/TermsConditions'
+import ShippingDeliveryPolicy from './pages/ShippingDeliveryPolicy'
 import Home from "./pages/Home";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
@@ -29,7 +33,25 @@ function App() {
 
           {/* Root redirect */}
           <Route path="/" element={<RootRedirect />} />
+<Route
+  path="/about-style4u"
+  element={<AboutStyle4U />}
+/>
 
+<Route
+  path="/privacy-policy"
+  element={<PrivacyPolicy />}
+/>
+
+<Route
+  path="/terms-and-conditions"
+  element={<TermsConditions />}
+/>
+
+<Route
+  path="/shipping-delivery-policy"
+  element={<ShippingDeliveryPolicy />}
+/>
           {/* Dealer */}
           <Route
             path="/home"

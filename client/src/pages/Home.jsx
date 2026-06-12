@@ -674,7 +674,7 @@ const Home = () => {
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 mt-10 py-4 px-4 sm:px-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-gray-400 text-center md:text-left">
+      {/* <footer className="border-t border-gray-200 mt-10 py-4 px-4 sm:px-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-gray-400 text-center md:text-left">
 
         <p>
           © 2024 – Style For You – All Rights Reserved.
@@ -694,7 +694,7 @@ const Home = () => {
             Privacy & Policy
           </span>
         </div>
-      </footer>
+      </footer> */}
     </div>
   )
 }

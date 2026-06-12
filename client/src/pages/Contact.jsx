@@ -222,7 +222,7 @@ className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none
 
         </div>
       </div>
-      <footer className="border-t border-gray-200 mt-10 py-4 px-4 sm:px-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-gray-400">
+      {/* <footer className="border-t border-gray-200 mt-10 py-4 px-4 sm:px-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-gray-400">
 
   <p>
     © 2024 – Style For You – All Rights Reserved.
@@ -244,7 +244,7 @@ className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none
 
   </div>
 
-</footer>
+</footer> */}
     </div>
   )
 }
