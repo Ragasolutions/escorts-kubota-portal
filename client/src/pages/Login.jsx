@@ -474,26 +474,29 @@ const Login = () => {
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center justify-between gap-3 mb-8">
 
-            <div className="flex items-center gap-2 min-w-0">
+  <div className="flex items-center gap-2">
 
-             <div className="w-24 h-24 bg-white rounded-xl flex items-center justify-center p-1 shrink-0 border border-gray-200">
+    <img
+      src="/eddal-logo.png"
+      alt="EDDAL"
+      className="h-12 w-auto object-contain"
+    />
+
+    <img
+      src="/escorts-kubota-logo.png"
+      alt="Escorts Kubota"
+      className="h-12 w-auto object-contain"
+    />
+
+  </div>
+
   <img
     src="/logo-1.jpeg"
-    alt="Escorts Kubota"
-    className="w-full h-full object-contain"
+    alt="Style4U"
+    className="h-12 w-auto object-contain"
   />
+
 </div>
-
-              
-            </div>
-
-            <img
-              src="/logo-1.jpeg"
-              alt="S4U"
-              className="h-12 sm:h-16 w-auto object-contain shrink-0"
-            />
-          </div>
-
           {step === 1 ? (
 
             <form
