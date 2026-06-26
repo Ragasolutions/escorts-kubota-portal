@@ -496,7 +496,7 @@ const Login = () => {
     className="h-12 w-auto object-contain"
   />
 
-</div>
+</div> 
           {step === 1 ? (
 
             <form
@@ -685,6 +685,50 @@ const Login = () => {
                   representative
                 </span>
               </p>
+
+              <div className="lg:hidden mt-8 pt-6 border-t border-gray-200">
+
+  <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-sm">
+
+    <Link
+      to="/about-style4u"
+      className="text-gray-500 hover:text-amber-600 transition"
+    >
+      About Style4U
+    </Link>
+
+    <Link
+      to="/privacy-policy"
+      className="text-gray-500 hover:text-amber-600 transition"
+    >
+      Privacy Policy
+    </Link>
+
+    <Link
+      to="/terms-and-conditions"
+      className="text-gray-500 hover:text-amber-600 transition"
+    >
+      Terms & Conditions
+    </Link>
+
+    <Link
+      to="/shipping-delivery-policy"
+      className="text-gray-500 hover:text-amber-600 transition"
+    >
+      Shipping & Delivery
+    </Link>
+
+  </div>
+
+  <p className="text-center text-xs text-gray-400 mt-5">
+    © 2024 Escorts Kubota Limited
+  </p>
+
+  <p className="text-center text-xs text-gray-400">
+    Powered by Style4U
+  </p>
+
+</div>
             </form>
 
           ) : (
