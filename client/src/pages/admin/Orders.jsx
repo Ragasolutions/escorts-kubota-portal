@@ -315,7 +315,7 @@ const Orders = () => {
 
                           ₹
                           {
-                            order.totalAmount
+                            order.finalAmount
                           }
                         </p>
 
