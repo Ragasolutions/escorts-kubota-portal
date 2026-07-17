@@ -388,3 +388,173 @@ if (status === 'Cancelled' && order.status !== 'Order Received') {
     next(error);
   }
 };
+
+
+exports.createAdminOrder = async (
+  req,
+  res,
+  next
+) => {
+  try {
+    const { dealerId, items } = req.body;
+
+    if (!dealerId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Dealer is required',
+      });
+    }
+
+    if (!items || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please add at least one product',
+      });
+    }
+
+    // Dealer
+    const dealer = await User.findById(dealerId);
+
+    if (!dealer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Dealer not found',
+      });
+    }
+
+    // Products
+    const productIds = items.map(i => i.product);
+
+    const products = await Product.find({
+      _id: { $in: productIds },
+      isActive: true,
+    });
+
+    let totalAmount = 0;
+    const orderItems = [];
+
+    for (const item of items) {
+      const product = products.find(
+        p => p._id.toString() === item.product
+      );
+
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          message: `Product not found`,
+        });
+      }
+
+      if (product.stock < item.quantity) {
+        return res.status(400).json({
+          success: false,
+          message: `Insufficient stock for "${product.name}". Available: ${product.stock}`,
+        });
+      }
+
+      orderItems.push({
+        product: product._id,
+        name: product.name,
+        image: product.images[0]?.url || '',
+        size: item.size || '',
+        quantity: item.quantity,
+        price: product.price,
+        hsnCode: product.hsnCode || '',
+      });
+
+      totalAmount += product.price * item.quantity;
+    }
+
+    // Pricing
+    const settings = await Settings.findOne();
+
+    const rebatePercent =
+      settings?.rebatePercent || 0;
+
+    const basicAmount = totalAmount;
+
+    const rebateAmount =
+      (basicAmount * rebatePercent) / 100;
+
+    let gstType = 'IGST';
+
+    if (
+      dealer?.state?.trim().toLowerCase() ===
+      'haryana'
+    ) {
+      gstType = 'CGST_SGST';
+    }
+
+    const gstPercent = 5;
+
+    const gstAmount =
+      (basicAmount * gstPercent) / 100;
+
+    const finalAmount =
+      basicAmount -
+      rebateAmount +
+      gstAmount;
+
+    // Shipping Address
+    const shippingAddress = {
+      name: dealer.name,
+      phone: dealer.phone,
+      street: dealer.address || '',
+      city: dealer.city || '',
+      state: dealer.state || '',
+      pincode: dealer.pincode || '',
+    };
+
+    // Create Order
+    const order = await Order.create({
+      user: dealer._id,
+
+      items: orderItems,
+
+      totalAmount,
+
+      shippingAddress,
+
+      basicAmount,
+      rebatePercent,
+      rebateAmount,
+
+      gstType,
+      gstPercent,
+      gstAmount,
+
+      finalAmount,
+
+      paymentStatus: 'paid',
+      paymentMethod: 'Sponsored',
+
+      statusHistory: [
+        {
+          status: 'Order Received',
+          note: 'Sponsored order created by Admin',
+        },
+      ],
+    });
+
+    // Reduce Stock
+    for (const item of items) {
+      await Product.findByIdAndUpdate(
+        item.product,
+        {
+          $inc: {
+            stock: -item.quantity,
+          },
+        }
+      );
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'Order created successfully',
+      order,
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};

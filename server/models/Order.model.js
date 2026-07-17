@@ -102,6 +102,12 @@ finalAmount: {
   enum: ['pending', 'paid', 'failed', 'refunded'],
   default: 'pending',
 },
+paymentMethod: {
+  type: String,
+  enum: ['Razorpay', 'Sponsored'],
+  default: 'Razorpay',
+},
+
 razorpayOrderId: { type: String },
 razorpayPaymentId: { type: String },
 razorpaySignature: { type: String },

@@ -8,6 +8,7 @@ import {
   ChevronUp,
   Package,
 } from 'lucide-react'
+import { Link } from "react-router-dom";
 
 const statusColors = {
   'Order Received':
@@ -154,6 +155,13 @@ const Orders = () => {
               orders
             </p>
           </div>
+
+          <Link
+  to="/admin/orders/create"
+  className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold transition"
+>
+  + Create Sponsored Order
+</Link>
         </div>
 
         {/* Filter by status */}

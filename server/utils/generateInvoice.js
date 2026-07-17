@@ -165,7 +165,7 @@ const generateInvoice = async (order, res) => {
   txt(`Order No.: ${order.orderId}`,                        ordX, custY + 28, { size: 9 });
   txt(`Order Date: ${new Date(order.createdAt).toLocaleDateString('en-IN')}`, ordX, custY + 41, { size: 9 });
   txt(`Payment Date: ${new Date(order.paymentDate || order.createdAt).toLocaleDateString('en-IN')}`, ordX, custY + 67, { size: 9 });
-  txt(`Payment Terms: ${order.paymentTerms || '100% Advance'}`, ordX, custY + 80, { size: 9 });
+  txt(`Payment Terms: ${order.paymentTerms || '40% Pay by Dealer + 60% Pay by Eddal'}`, ordX, custY + 80, { size: 8, width: 230 });
 
   y += H_CUSTORD;
 
@@ -317,10 +317,10 @@ const generateInvoice = async (order, res) => {
   txt(`Basic Amount`,                                labX,         leftY + 24, { size: 9 });
   txt(`Rs. ${order.basicAmount.toFixed(2)}`,       valX,         leftY + 24, { size: 9 });
 
-  if (order.rebatePercent) {
-    txt(`Rebate (${order.rebatePercent}%)`,           labX,         leftY + 38, { size: 9 });
-    txt(`-Rs. ${order.rebateAmount.toFixed(2)}`,    valX,         leftY + 38, { size: 9 });
-  }
+  // if (order.rebatePercent) {
+  //   txt(`Rebate (${order.rebatePercent}%)`,           labX,         leftY + 38, { size: 9 });
+  //   txt(`-Rs. ${order.rebateAmount.toFixed(2)}`,    valX,         leftY + 38, { size: 9 });
+  // }
 
   txt(`${order.gstType || 'IGST'}(${order.gstPercent}%)`, labX,   leftY + 52, { size: 9 });
   txt(`Rs. ${order.gstAmount.toFixed(2)}`,          valX,         leftY + 52, { size: 9 });
@@ -335,7 +335,7 @@ const generateInvoice = async (order, res) => {
   hline(PW / 2 + 20, leftY + 93, PW - MR);
 
   txt('Total',                                       labX,          leftY + 97, { bold: true, size: 10 });
-  txt(`Rs. ${order.finalAmount.toFixed(2)}`,       valX,          leftY + 97, { bold: true, size: 10 });
+ txt(`Rs. ${(order.basicAmount + order.gstAmount + (order.courierCharges || 0)).toFixed(2)}`,       valX,          leftY + 97, { bold: true, size: 10 });
 
   y += summaryRowH;
 

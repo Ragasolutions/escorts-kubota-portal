@@ -9,6 +9,7 @@ const {
   bulkUploadUsers,
     deleteUser,
       bulkDeleteUsers,
+        searchDealers,
 } = require('../controllers/user.controller');
 const { uploadSingle , uploadExcelFile  } = require('../middleware/upload.middleware')
 
@@ -16,6 +17,12 @@ const { protect, adminOnly } = require('../middleware/auth.middleware');
 
 // All routes are admin only
 router.get('/',      protect, adminOnly, getAllUsers);
+router.get(
+  '/search',
+  protect,
+  adminOnly,
+  searchDealers
+);
 router.get('/:id',   protect, adminOnly, getUserById);
 router.post('/',     protect, adminOnly, createUser);
 router.put('/:id',   protect, adminOnly, updateUser);

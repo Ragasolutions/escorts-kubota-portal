@@ -385,3 +385,51 @@ exports.deleteUser = async (req, res, next) => {
     next(error);
   }
 };
+
+
+// ─── @desc    Search Dealers ───────────────────────────────
+// ─── @route   GET /api/users/search ────────────────────────
+// ─── @access  Admin ────────────────────────────────────────
+
+exports.searchDealers = async (req, res, next) => {
+  try {
+    const { keyword = '' } = req.query;
+
+    const dealers = await User.find({
+      role: 'dealer',
+      isActive: true,
+      $or: [
+        {
+          name: {
+            $regex: keyword,
+            $options: 'i',
+          },
+        },
+        {
+          phone: {
+            $regex: keyword,
+            $options: 'i',
+          },
+        },
+        {
+          code: {
+            $regex: keyword,
+            $options: 'i',
+          },
+        },
+      ],
+    })
+      .select(
+        '_id code name phone email address city state'
+      )
+      .limit(10);
+
+    res.status(200).json({
+      success: true,
+      dealers,
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};

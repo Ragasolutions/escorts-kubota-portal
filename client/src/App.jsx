@@ -15,6 +15,7 @@ import Dashboard from "./pages/admin/Dashboard";
 import AdminOrders from "./pages/admin/Orders";
 import AdminProducts from "./pages/admin/Products";
 import AdminUsers from "./pages/admin/Users";
+import CreateOrder from "./pages/admin/CreateOrder";
 
 const RootRedirect = () => {
   const { user } = useAuth();
@@ -110,6 +111,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+  path="/admin/orders/create"
+  element={
+    <ProtectedRoute adminOnly>
+      <CreateOrder />
+    </ProtectedRoute>
+  }
+/>
           <Route
             path="/admin/products"
             element={

@@ -407,7 +407,7 @@ const Home = () => {
                     setSearch('')
                     setSearchInput('')
                   }}
-                  className="text-xs text-red-500 hover:underline text-left sm:text-right"
+                  className="text-md text-red-500 hover:underline text-left sm:text-right"
                 >
                   Clear all filters
                 </button>

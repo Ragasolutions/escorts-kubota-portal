@@ -8,6 +8,7 @@ const {
   updateOrderStatus,
   calculateOrder,
   downloadInvoice,
+    createAdminOrder,
 } = require('../controllers/order.controller');
 
 const { protect, adminOnly } = require('../middleware/auth.middleware');
@@ -31,5 +32,10 @@ router.get('/:id',    protect, getOrderById);
 // Admin only
 router.get('/',                     protect, adminOnly, getAllOrders);
 router.put('/:id/status',           protect, adminOnly, updateOrderStatus);
-
+router.post(
+  '/admin/create',
+  protect,
+  adminOnly,
+  createAdminOrder
+);
 module.exports = router;
