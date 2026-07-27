@@ -7,6 +7,7 @@ import {
   ChevronDown,
   ChevronUp,
   Package,
+    Download,
 } from 'lucide-react'
 import { Link } from "react-router-dom";
 
@@ -52,7 +53,10 @@ const Orders = () => {
 
   const [expanded, setExpanded] =
     useState(null)
-
+const [downloadingInvoice, setDownloadingInvoice] =
+  useState(null)
+  const [exporting, setExporting] =
+  useState(false);
   const [filterStatus, setFilterStatus] =
     useState('')
 
@@ -61,6 +65,8 @@ const Orders = () => {
     fetchOrders()
 
   }, [])
+
+const token = localStorage.getItem("token")
 
   const fetchOrders = async () => {
 
@@ -125,6 +131,95 @@ const Orders = () => {
     setUpdatingId(null)
   }
 
+
+const handleInvoiceDownload = async (orderId) => {
+  try {
+    setDownloadingInvoice(orderId)
+
+    const response = await api.get(
+      `${import.meta.env.VITE_API_URL}/orders/${orderId}/invoice`,
+      {
+        responseType: "blob",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    )
+
+    const url = window.URL.createObjectURL(
+      new Blob([response.data])
+    )
+
+    const link = document.createElement("a")
+
+    link.href = url
+    link.download = `Invoice-${orderId}.pdf`
+
+    document.body.appendChild(link)
+
+    link.click()
+
+    link.remove()
+
+    window.URL.revokeObjectURL(url)
+
+  } catch (error) {
+
+    console.error(error)
+
+    toast.error("Failed to download invoice")
+
+  } finally {
+
+    setDownloadingInvoice(null)
+
+  }
+}
+
+const handleExportOrders = async () => {
+  try {
+    setExporting(true);
+
+    const response = await api.get(
+      `${import.meta.env.VITE_API_URL}/orders/export`,
+      {
+        responseType: "blob",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const url = window.URL.createObjectURL(
+      new Blob([response.data])
+    );
+
+    const link = document.createElement("a");
+
+    link.href = url;
+
+    link.download = `Orders-${new Date()
+      .toISOString()
+      .slice(0, 10)}.xlsx`;
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    link.remove();
+
+    window.URL.revokeObjectURL(url);
+
+    toast.success("Orders exported successfully.");
+  } catch (error) {
+    console.error(error);
+
+    toast.error("Failed to export orders.");
+  } finally {
+    setExporting(false);
+  }
+};
+
   const filtered = filterStatus
     ? orders.filter(
         (o) =>
@@ -156,12 +251,32 @@ const Orders = () => {
             </p>
           </div>
 
-          <Link
-  to="/admin/orders/create"
-  className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold transition"
->
-  + Create Sponsored Order
-</Link>
+
+
+         <div className="flex flex-wrap gap-3">
+  <button
+    onClick={handleExportOrders}
+    disabled={exporting}
+    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition ${
+      exporting
+        ? "bg-gray-400 cursor-not-allowed text-white"
+        : "bg-emerald-600 hover:bg-emerald-700 text-white"
+    }`}
+  >
+    <Download size={18} />
+
+    {exporting
+      ? "Exporting..."
+      : "Export Orders"}
+  </button>
+
+  <Link
+    to="/admin/orders/create"
+    className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold transition"
+  >
+    + Create Sponsored Order
+  </Link>
+</div>
         </div>
 
         {/* Filter by status */}
@@ -288,32 +403,24 @@ const Orders = () => {
 
                         <div className="min-w-0">
 
-                          <p className="font-black text-gray-800 break-all">
+  <div className="flex items-center gap-2 flex-wrap">
+    <p className="font-black text-gray-800 break-all">
+      {order.orderId}
+    </p>
 
-                            {
-                              order.orderId
-                            }
-                          </p>
+    {order.paymentMethod === "Sponsored" && (
+      <span className="inline-flex items-center rounded-full bg-green-100 border border-green-200 px-2.5 py-0.5 text-[11px] font-semibold text-green-700">
+        Sponsored
+      </span>
+    )}
+  </div>
 
-                          <p className="text-xs text-gray-400 break-words">
+  <p className="text-xs text-gray-400 break-words mt-1">
+    {order.user?.name} · {order.user?.code} ·{" "}
+    {new Date(order.createdAt).toLocaleDateString("en-IN")}
+  </p>
 
-                            {
-                              order.user
-                                ?.name
-                            }{' '}
-                            ·{' '}
-                            {
-                              order.user
-                                ?.code
-                            }{' '}
-                            ·{' '}
-                            {new Date(
-                              order.createdAt
-                            ).toLocaleDateString(
-                              'en-IN'
-                            )}
-                          </p>
-                        </div>
+</div>
                       </div>
 
                       {/* Right */}
@@ -532,6 +639,25 @@ const Orders = () => {
                           }
                         </p>
                       </div>
+
+<button
+  onClick={() =>
+    handleInvoiceDownload(order._id)
+  }
+  disabled={
+    downloadingInvoice === order._id
+  }
+  className={`mt-4 w-full py-3 rounded-xl font-semibold transition ${
+    downloadingInvoice === order._id
+      ? "bg-gray-400 cursor-not-allowed text-white"
+      : "bg-green-600 hover:bg-green-700 text-white"
+  }`}
+>
+  {downloadingInvoice === order._id
+    ? "Preparing Invoice..."
+    : "Download Invoice"}
+</button>
+
                     </div>
                   )}
                 </div>

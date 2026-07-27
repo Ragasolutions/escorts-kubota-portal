@@ -3,6 +3,7 @@ const Product = require('../models/Product.model');
 const User = require('../models/User.model');
 const Settings = require('../models/Settings');
 const generateInvoice = require('../utils/generateInvoice');
+const ExcelJS = require("exceljs");
 // ─── @desc    Place a new order ─────────────────────────────
 // ─── @route   POST /api/orders ──────────────────────────────
 // ─── @access  Private ───────────────────────────────────────
@@ -556,5 +557,171 @@ exports.createAdminOrder = async (
 
   } catch (error) {
     next(error);
+  }
+};
+
+
+exports.exportOrders = async (req, res) => {
+  try {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Orders");
+
+    // Freeze Header
+    worksheet.views = [
+      {
+        state: "frozen",
+        ySplit: 1,
+      },
+    ];
+
+    worksheet.columns = [
+      { header: "Order ID", key: "orderId", width: 18 },
+      { header: "Order Date", key: "orderDate", width: 15 },
+      { header: "Dealer Code", key: "dealerCode", width: 15 },
+      { header: "Dealer Name", key: "dealerName", width: 25 },
+      { header: "Dealer Email", key: "dealerEmail", width: 30 },
+      { header: "Dealer Phone", key: "dealerPhone", width: 18 },
+      { header: "State", key: "state", width: 18 },
+      { header: "Sponsored", key: "sponsored", width: 12 },
+      { header: "Payment Method", key: "paymentMethod", width: 18 },
+      { header: "Payment Status", key: "paymentStatus", width: 18 },
+      { header: "Order Status", key: "status", width: 18 },
+      { header: "Product Name", key: "productName", width: 30 },
+      { header: "HSN Code", key: "hsnCode", width: 15 },
+      { header: "Size", key: "size", width: 12 },
+      { header: "Quantity", key: "quantity", width: 10 },
+      { header: "Unit Price", key: "unitPrice", width: 15 },
+      { header: "Basic Amount", key: "basicAmount", width: 15 },
+      { header: "Rebate", key: "rebate", width: 15 },
+      { header: "GST", key: "gst", width: 15 },
+      { header: "Final Amount", key: "finalAmount", width: 15 },
+    ];
+
+    const orders = await Order.find()
+      .populate("user", "name code email phone")
+      .sort({ createdAt: -1 });
+
+    for (const order of orders) {
+      for (const item of order.items) {
+        worksheet.addRow({
+          orderId: order.orderId,
+
+          orderDate: new Date(
+            order.createdAt
+          ).toLocaleDateString("en-IN"),
+
+          dealerCode: order.user?.code || "",
+
+          dealerName: order.user?.name || "",
+
+          dealerEmail: order.user?.email || "",
+
+          dealerPhone: order.user?.phone || "",
+
+          state:
+            order.shippingAddress?.state || "",
+
+          sponsored:
+            order.paymentMethod === "Sponsored"
+              ? "Yes"
+              : "No",
+
+          paymentMethod:
+            order.paymentMethod,
+
+          paymentStatus:
+            order.paymentStatus,
+
+          status: order.status,
+
+          productName: item.name,
+
+          hsnCode: item.hsnCode || "",
+
+          size: item.size || "-",
+
+          quantity: item.quantity,
+
+          unitPrice: item.price,
+
+          basicAmount:
+            order.basicAmount,
+
+          rebate:
+            order.rebateAmount,
+
+          gst:
+            order.gstAmount,
+
+          finalAmount:
+            order.finalAmount,
+        });
+      }
+    }
+
+    // Header Style
+    const headerRow = worksheet.getRow(1);
+
+    headerRow.font = {
+      bold: true,
+      color: {
+        argb: "FFFFFFFF",
+      },
+    };
+
+    headerRow.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: {
+        argb: "FF16A34A",
+      },
+    };
+
+    headerRow.alignment = {
+      vertical: "middle",
+      horizontal: "center",
+    };
+
+    headerRow.eachCell((cell) => {
+      cell.border = {
+        top: { style: "thin" },
+        left: { style: "thin" },
+        bottom: { style: "thin" },
+        right: { style: "thin" },
+      };
+    });
+
+    // Enable Filters
+    worksheet.autoFilter = {
+      from: "A1",
+      to: "T1",
+    };
+
+    // Currency Format
+    ["P", "Q", "R", "S", "T"].forEach((column) => {
+      worksheet.getColumn(column).numFmt =
+        "₹#,##0.00";
+    });
+
+    // Download Response
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=Orders-${Date.now()}.xlsx`
+    );
+
+    await workbook.xlsx.write(res);
+
+    res.end();
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Failed to export orders",
+    });
   }
 };

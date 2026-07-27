@@ -22,6 +22,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Phone number is required'],
       trim: true,
+      // ← removed unique
     },
     email: {
       type: String,
@@ -41,16 +42,26 @@ const userSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
-    
-   city: {
+    city: {
+      type: String,
+      trim: true,
+    },
+    state: {
+      type: String,
+      trim: true,
+    },
+   companies: [{
   type: String,
-  trim: true,
-},
-
-state: {
-  type: String,
-  trim: true,
-},
+  enum: [
+    'Construction Equipment',
+    'Farmtrac',
+    'GENSET',
+    'HO',
+    'Kubota',
+    'Powertrac',
+    'Agri Machinery',
+  ]
+}],
     lastLogin: {
       type: Date,
     },

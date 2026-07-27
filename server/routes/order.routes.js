@@ -9,33 +9,35 @@ const {
   calculateOrder,
   downloadInvoice,
     createAdminOrder,
+      exportOrders,
 } = require('../controllers/order.controller');
 
 const { protect, adminOnly } = require('../middleware/auth.middleware');
 
 // Dealer / Employee
-router.post(
-  '/calculate',
-  protect,
-  calculateOrder
-);
+router.post('/calculate', protect, calculateOrder);
 
-router.post('/',      protect, placeOrder);
-router.get('/my',     protect, getMyOrders);
-router.get(
-  '/:id/invoice',
-  protect,
-  downloadInvoice
-);
-router.get('/:id',    protect, getOrderById);
+router.post('/', protect, placeOrder);
 
-// Admin only
-router.get('/',                     protect, adminOnly, getAllOrders);
-router.put('/:id/status',           protect, adminOnly, updateOrderStatus);
+router.get('/my', protect, getMyOrders);
+
+// Admin
+router.get('/export', protect, adminOnly, exportOrders);
+
+router.get('/', protect, adminOnly, getAllOrders);
+
+router.put('/:id/status', protect, adminOnly, updateOrderStatus);
+
 router.post(
   '/admin/create',
   protect,
   adminOnly,
   createAdminOrder
 );
+
+// Invoice
+router.get('/:id/invoice', protect, downloadInvoice);
+
+// Single Order (KEEP THIS LAST)
+router.get('/:id', protect, getOrderById);
 module.exports = router;

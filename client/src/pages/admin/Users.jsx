@@ -28,6 +28,7 @@ const Users = () => {
   const [bulkUploading, setBulkUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState(null);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [uploadCompany, setUploadCompany] = useState('')
 const [showAllErrors, setShowAllErrors] = useState(false);
 const [selectedIds, setSelectedIds] = useState([])
 const [bulkDeleting, setBulkDeleting] = useState(false)
@@ -143,6 +144,7 @@ setForm({
     try {
       const formData = new FormData();
       formData.append("image", file);
+      formData.append('company', uploadCompany)
       const res = await api.post("/users/bulk-upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -273,19 +275,36 @@ const handleBulkDelete = async () => {
             <p className="text-gray-400 text-sm">{total} users registered</p>
           </div>
 <div className="flex flex-wrap items-center gap-2">
-              <label
-              className={`flex items-center justify-center gap-2 border-2 border-amber-500 w-full sm:w-auto text-amber-600 px-4 py-2.5 rounded-xl text-sm font-bold transition cursor-pointer hover:bg-amber-50 ${bulkUploading ? "opacity-50 cursor-not-allowed" : ""}`}
-            >
-              <Upload size={16} />
-              {bulkUploading ? "Uploading..." : "Bulk Upload"}
-              <input
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                onChange={handleBulkUpload}
-                disabled={bulkUploading}
-                className="hidden"
-              />
-            </label>
+              <div className="flex items-center gap-2">
+  <select
+    value={uploadCompany}
+    onChange={e => setUploadCompany(e.target.value)}
+    className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+  >
+    <option value="">Select Company *</option>
+    <option value="Construction Equipment">Construction Equipment</option>
+    <option value="Farmtrac">Farmtrac</option>
+    <option value="GENSET">GENSET</option>
+    <option value="HO">HO</option>
+    <option value="Kubota">Kubota</option>
+    <option value="Powertrac">Powertrac</option>
+    <option value="Agri Machinery">Agri Machinery</option>
+  </select>
+
+  <label className={`flex items-center gap-2 border-2 border-amber-500 text-amber-600 px-4 py-2.5 rounded-xl text-sm font-bold transition cursor-pointer hover:bg-amber-50 ${
+    bulkUploading || !uploadCompany ? 'opacity-50 cursor-not-allowed' : ''
+  }`}>
+    <Upload size={16} />
+    {bulkUploading ? 'Uploading...' : 'Bulk Upload'}
+    <input
+      type="file"
+      accept=".xlsx,.xls,.csv"
+      onChange={handleBulkUpload}
+      disabled={bulkUploading || !uploadCompany}
+      className="hidden"
+    />
+  </label>
+</div>
             <button
               onClick={() => setShowTemplateModal(true)}
               className="flex items-center justify-center gap-2 border border-gray-200 w-full sm:w-auto text-gray-600 px-4 py-2.5 rounded-xl text-sm font-bold transition hover:bg-gray-50"
@@ -555,6 +574,7 @@ const handleBulkDelete = async () => {
     <th className="px-5 py-3">User</th>
     <th className="px-5 py-3">Phone</th>
     <th className="px-5 py-3">Role</th>
+    <th className="px-5 py-3">Companies</th>
     <th className="px-5 py-3">Status</th>
     <th className="px-5 py-3">Action</th>
   </tr>
@@ -594,6 +614,18 @@ const handleBulkDelete = async () => {
                         {user.role}
                       </span>
                     </td>
+<td className="px-5 py-3">
+  <div className="flex flex-wrap gap-1">
+    {user.companies?.length > 0
+      ? user.companies.map(c => (
+          <span key={c} className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium">
+            {c}
+          </span>
+        ))
+      : <span className="text-xs text-gray-400">—</span>
+    }
+  </div>
+</td>
                     <td className="px-5 py-3">
                       <span
                         className={`text-xs px-2 py-1 rounded-full font-bold ${user.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}
@@ -703,14 +735,10 @@ const handleBulkDelete = async () => {
 <div className="fixed bottom-4 right-4 left-4 sm:left-auto sm:right-6 z-50">
 <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 w-full sm:w-72">
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-              <div>
-                <p className="font-black text-gray-800 text-sm">
-                  Bulk Upload Complete
-                </p>
-                <p className="text-xs text-gray-400">
-                  Total processed: {uploadResult.created + uploadResult.skipped}
-                </p>
-              </div>
+              <div className="flex-1 bg-blue-50 rounded-xl p-2.5 text-center">
+  <p className="text-xl font-black text-blue-600">{uploadResult.updated || 0}</p>
+  <p className="text-xs text-blue-500 font-medium">Updated</p>
+</div>
               <button
                 onClick={() => setUploadResult(null)}
                 className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 transition text-gray-400"

@@ -179,7 +179,7 @@ const Dashboard = () => {
 
               <h1 className="text-xl sm:text-2xl font-black mt-1 break-words">
 
-                Escorts Kubota Portal
+                Style4U Portal
               </h1>
 
               <p className="text-green-200 text-xs sm:text-sm mt-1">

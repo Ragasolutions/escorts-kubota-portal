@@ -33,7 +33,7 @@ const Navbar = ({ cartCount = 0 }) => {
     {/* Top Bar */}
 <div className="bg-[#1a1a1a] px-4 sm:px-6 py-3 border-b border-white border-opacity-5">
 
-  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+  <div className="flex  lg:flex-row lg:items-center lg:justify-between gap-3 justify-between items-center lg:items-center">
 
     {/* Left Branding */}
     <div className="flex items-center gap-3 min-w-0">
@@ -69,9 +69,9 @@ const Navbar = ({ cartCount = 0 }) => {
       {/* <div className="hidden lg:block w-px h-10 bg-white bg-opacity-10"></div> */}
 
       {/* Style4U Logo */}
-      <div className="hidden sm:flex items-center gap-3 shrink-0">
+      <div className="flex items-center gap-3 shrink-0">
 
-  <div className="bg-white rounded-xl px-4 py-2 shadow-lg hover:scale-[1.02] transition">
+  {/* <div className="bg-white rounded-xl px-4 py-2 shadow-lg hover:scale-[1.02] transition">
     <img
       src="/eddal-logo.png"
       alt="EDDAL"
@@ -85,7 +85,31 @@ const Navbar = ({ cartCount = 0 }) => {
       alt="Escorts Kubota Limited"
       className="h-12 w-auto object-contain"
     />
-  </div>
+  </div> */}
+
+ {/* Style4U Logo */}
+  <a
+    href="https://orange-rat-828494.hostingersite.com/"
+    target="_blank"
+    rel="noopener noreferrer"
+className="flex  items-center gap-2 bg-white px-3 py-1.5 rounded-xl shadow-md"  >
+
+    <img
+      src="/logo-1.jpeg"
+      alt="Style4U"
+      className="h-14 w-auto object-contain"
+    />
+
+    {/* <div className="hidden lg:block">
+      <p className="text-[10px] font-black text-gray-800 leading-none">
+        STYLE4U
+      </p>
+
+      <p className="text-[9px] text-gray-500 mt-0.5">
+        Official Partner
+      </p>
+    </div> */}
+  </a>
 
 </div>
     </div>
@@ -210,7 +234,7 @@ style4ufbd@gmail.com
 <div className="flex items-center gap-3 shrink-0">
 
   {/* Style4U Logo */}
-  <a
+  {/* <a
     href="https://orange-rat-828494.hostingersite.com/"
     target="_blank"
     rel="noopener noreferrer"
@@ -223,7 +247,7 @@ style4ufbd@gmail.com
       className="h-10 w-auto object-contain"
     />
 
-    {/* <div className="hidden lg:block">
+    <div className="hidden lg:block">
       <p className="text-[10px] font-black text-gray-800 leading-none">
         STYLE4U
       </p>
@@ -231,8 +255,8 @@ style4ufbd@gmail.com
       <p className="text-[9px] text-gray-500 mt-0.5">
         Official Partner
       </p>
-    </div> */}
-  </a>
+    </div>
+  </a> */}
 
   {/* Divider */}
   <div className="hidden sm:block w-px h-8 bg-white bg-opacity-10"></div>

@@ -62,24 +62,26 @@ exports.bulkUploadUsers = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Please upload an Excel file' })
     }
 
-    // Read Excel from buffer
+    const uploadedCompany = req.body.company || ''
+
     const workbook = XLSX.read(req.file.buffer, { type: 'buffer' })
     const sheetName = workbook.SheetNames[0]
     const sheet = workbook.Sheets[sheetName]
     const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' })
-    
 
     if (rows.length === 0) {
       return res.status(400).json({ success: false, message: 'Excel file is empty' })
     }
 
-    const results = { created: 0, skipped: 0, errors: [] }
+    const results = { created: 0, updated: 0, skipped: 0, errors: [] }
+
+const seenPhones = new Set()
+const seenCodes = new Set()
 
     for (const row of rows) {
       try {
-        // Map Excel columns to our fields
-        // Handles different column name variations
         const code = (
+          row['Member No.'] || row['Member No'] ||
           row['Dealer Code'] || row['Code'] || row['CODE'] || ''
         ).toString().trim().toUpperCase()
 
@@ -92,8 +94,8 @@ exports.bulkUploadUsers = async (req, res, next) => {
         ).toString().trim()
 
         const phone = (
-          row['Mobile No.'] || row['Mobile No'] || row['Mobile'] || row['phone'] || row['PHONE'] ||
-          row['Phone No.'] || row['Phone'] || row['MOBILE'] || ''
+          row['Mobile No.'] || row['Mobile No'] || row['Mobile'] ||
+          row['Phone No.'] || row['Phone'] || row['MOBILE'] || row['phone'] || ''
         ).toString().trim().replace(/\D/g, '').slice(-10)
 
         const email = (
@@ -104,68 +106,109 @@ exports.bulkUploadUsers = async (req, res, next) => {
           row['Address'] || row['ADDRESS'] || ''
         ).toString().trim()
 
-         const city = (
-          row['CITY'] || row['City'] || ''
+        const city = (
+          row['City'] || row['CITY'] || row['city'] || ''
         ).toString().trim()
 
-         const state = (
-          row['STATE'] || row['State'] || ''
+        const state = (
+          row['State'] || row['STATE'] || row['state'] || ''
         ).toString().trim()
 
-        // Skip if missing required fields
-        if (
-  !code ||
-  !phone ||
-  !address ||
-  !city ||
-  !state
-) {
-  results.skipped++;
-  results.errors.push(
-    `Row skipped — Address, City or State missing: ${code}`
-  );
-  continue;
+        const zone = (
+          row['Zone'] || row['ZONE'] || row['zone'] || ''
+        ).toString().trim()
+
+        const region = (
+          row['Region'] || row['REGION'] || row['region'] || ''
+        ).toString().trim()
+
+
+// Check duplicate within same file
+if (phone && seenPhones.has(phone)) {
+  results.skipped++
+  results.errors.push(`⚠️ Duplicate in file: ${phone} — skipped`)
+  continue
+}
+if (code && seenCodes.has(code)) {
+  results.skipped++
+  results.errors.push(`⚠️ Duplicate in file: ${code} — skipped`)
+  continue
 }
 
-        // Skip if name is missing
+// Add to seen sets
+if (phone) seenPhones.add(phone)
+if (code) seenCodes.add(code)
+
+        // Skip if missing required fields
+        if (!code && !phone) {
+          results.skipped++
+          results.errors.push(`Row skipped — missing code and phone`)
+          continue
+        }
+
         if (!name && !dealershipName) {
           results.skipped++
           results.errors.push(`Row skipped — missing name: code ${code}`)
           continue
         }
 
-        // Check if already exists
-        const existing = await User.findOne({ $or: [{ code }, { phone }] })
+        // Check if dealer exists by phone OR code
+        const queryConditions = []
+        if (phone) queryConditions.push({ phone })
+        if (code) queryConditions.push({ code })
+
+        const existing = queryConditions.length > 0
+          ? await User.findOne({ $or: queryConditions })
+          : null
+
         if (existing) {
-          results.skipped++
-          results.errors.push(`Skipped — already exists: ${code} / ${phone}`)
+          if (uploadedCompany) {
+            if (!existing.companies?.includes(uploadedCompany)) {
+              // Add new company to existing dealer
+              await User.findByIdAndUpdate(existing._id, {
+                $addToSet: { companies: uploadedCompany }
+              })
+              results.updated++
+              results.errors.push(`ℹ️ ${existing.name} — added: ${uploadedCompany}`)
+            } else {
+              results.skipped++
+              results.errors.push(`Already in ${uploadedCompany}: ${existing.name}`)
+            }
+          } else {
+            results.skipped++
+            results.errors.push(`Duplicate skipped: ${code} / ${phone}`)
+          }
           continue
         }
 
-        // Create user
+        // Create new dealer
         await User.create({
-          code,
-          name: name || dealershipName,
-          dealershipName,
+          code: code || `AUTO-${Date.now()}`,
+          name: name || dealershipName || 'Unknown',
+          dealershipName: dealershipName || name || '',
           phone,
           email: email || undefined,
           address: address || undefined,
           city: city || undefined,
           state: state || undefined,
+          zone: zone || undefined,
+          region: region || undefined,
           role: 'dealer',
           isActive: true,
+          companies: uploadedCompany ? [uploadedCompany] : [],
         })
 
         results.created++
+
       } catch (err) {
         results.skipped++
-        results.errors.push(`Error on row: ${err.message}`)
+        results.errors.push(`Error: ${err.message}`)
       }
     }
 
     res.status(200).json({
       success: true,
-      message: `Bulk upload complete — ${results.created} created, ${results.skipped} skipped`,
+      message: `Done — ${results.created} created, ${results.updated} updated, ${results.skipped} skipped`,
       results,
     })
 
