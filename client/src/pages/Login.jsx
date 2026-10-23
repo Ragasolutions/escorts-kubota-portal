@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { useForm } from 'react-hook-form'
@@ -63,6 +63,36 @@ const Login = () => {
 
   const recaptchaRef = useRef(null)
 
+  // Component-owned reCAPTCHA verifier lifecycle.
+  // - recaptchaVerifierRef holds the current verifier instance.
+  // - recaptchaContainerRef tracks the DOM node the verifier was created with,
+  //   so a replaced container (e.g. dev HMR) triggers a safe rebuild instead of
+  //   reusing a verifier bound to a detached node.
+  // - verifyingRef marks an in-flight signInWithPhoneNumber so unmount cleanup
+  //   never destroys a verifier an active request still needs.
+  const recaptchaVerifierRef = useRef(null)
+  const recaptchaContainerRef = useRef(null)
+  const verifyingRef = useRef(false)
+
+  useEffect(() => {
+    return () => {
+      // Never tear down a verifier that an in-flight request still uses.
+      if (verifyingRef.current) return
+
+      const verifier = recaptchaVerifierRef.current
+      recaptchaVerifierRef.current = null
+      recaptchaContainerRef.current = null
+
+      if (verifier) {
+        try {
+          verifier.clear()
+        } catch {
+          // Ignore teardown errors from an already-cleared verifier.
+        }
+      }
+    }
+  }, [])
+
   // Phone Form
   const {
     register: registerPhone,
@@ -95,27 +125,49 @@ const Login = () => {
 
     if (useFirebase) {
 
-      // Create reCAPTCHA only once
-      if (!window.recaptchaVerifier) {
+      const container = recaptchaRef.current
 
-        window.recaptchaVerifier =
-          new RecaptchaVerifier(
-            auth,
-            recaptchaRef.current,
-            {
-              size: 'invisible',
-            }
-          )
-
-        await window.recaptchaVerifier.render()
+      // If the container node changed, the existing verifier is bound to a
+      // stale/detached element — clear it before creating a new one so we never
+      // render two widgets into the same container.
+      if (
+        recaptchaVerifierRef.current &&
+        recaptchaContainerRef.current !== container
+      ) {
+        try {
+          recaptchaVerifierRef.current.clear()
+        } catch {
+          // Ignore errors from clearing an already-destroyed verifier.
+        }
+        recaptchaVerifierRef.current = null
+        recaptchaContainerRef.current = null
       }
 
-      const result =
-        await signInWithPhoneNumber(
+      // Create the verifier once and reuse it while the container stays valid.
+      // The SDK renders the widget during signInWithPhoneNumber/verify(), so no
+      // manual render() call is needed here.
+      if (!recaptchaVerifierRef.current) {
+        recaptchaVerifierRef.current = new RecaptchaVerifier(
+          auth,
+          container,
+          {
+            size: 'invisible',
+          }
+        )
+        recaptchaContainerRef.current = container
+      }
+
+      verifyingRef.current = true
+      let result
+      try {
+        result = await signInWithPhoneNumber(
           auth,
           `+91${data.phone}`,
-          window.recaptchaVerifier
+          recaptchaVerifierRef.current
         )
+      } finally {
+        verifyingRef.current = false
+      }
 
       setConfirmationResult(result)
 
@@ -247,8 +299,17 @@ const Login = () => {
       `Welcome ${res.data.user.name}!`
     )
 
-    // Clear old reCAPTCHA
-    window.recaptchaVerifier = null
+    // Release the reCAPTCHA verifier now that verification is complete.
+    const verifier = recaptchaVerifierRef.current
+    recaptchaVerifierRef.current = null
+    recaptchaContainerRef.current = null
+    if (verifier) {
+      try {
+        verifier.clear()
+      } catch {
+        // Ignore teardown errors from an already-cleared verifier.
+      }
+    }
 
     navigate(
       res.data.user.role === 'admin'
@@ -523,7 +584,7 @@ const Login = () => {
 
                 {[
                   'Dealer',
-                  'Employee',
+                  'Admin',
                 ].map((role) => (
 
                   <div

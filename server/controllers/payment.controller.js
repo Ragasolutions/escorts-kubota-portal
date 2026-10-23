@@ -1,6 +1,7 @@
 const razorpay = require('../config/razorpay')
 const Order = require('../models/Order.model')
 const crypto = require('crypto')
+const orderEmailService = require('../services/orderEmail.service')
 
 // ─── Create Razorpay Order ────────────────────────────────────
 exports.createOrder = async (req, res, next) => {
@@ -76,6 +77,13 @@ exports.verifyPayment = async (req, res, next) => {
     })
 
     await order.save()
+
+    // Best-effort order confirmation email (never affects the API result).
+    try {
+      await orderEmailService.sendOrderConfirmation(order)
+    } catch (emailError) {
+      console.error('Order confirmation email error:', emailError.message)
+    }
 
     res.status(200).json({
       success: true,

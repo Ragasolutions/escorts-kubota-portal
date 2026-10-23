@@ -3,6 +3,7 @@ const Product = require('../models/Product.model');
 const User = require('../models/User.model');
 const Settings = require('../models/Settings');
 const generateInvoice = require('../utils/generateInvoice');
+const orderEmailService = require('../services/orderEmail.service');
 const ExcelJS = require("exceljs");
 // ─── @desc    Place a new order ─────────────────────────────
 // ─── @route   POST /api/orders ──────────────────────────────
@@ -373,6 +374,8 @@ if (status === 'Cancelled' && order.status !== 'Order Received') {
       });
     }
 
+    const previousStatus = order.status;
+
     // Update status + push to history
     order.status = status;
     order.statusHistory.push({
@@ -382,6 +385,17 @@ if (status === 'Cancelled' && order.status !== 'Order Received') {
     });
 
     await order.save();
+
+    // Best-effort status-update email (never affects the API result).
+    if (previousStatus !== status) {
+      try {
+        await orderEmailService.sendOrderStatusUpdate(order, {
+          newStatus: status,
+        });
+      } catch (emailError) {
+        console.error('Order status email error:', emailError.message);
+      }
+    }
 
     res.status(200).json({ success: true, order });
 
@@ -547,6 +561,13 @@ exports.createAdminOrder = async (
           },
         }
       );
+    }
+
+    // Best-effort sponsored order confirmation email (never affects the API result).
+    try {
+      await orderEmailService.sendSponsoredOrderConfirmation(order);
+    } catch (emailError) {
+      console.error('Sponsored order email error:', emailError.message);
     }
 
     res.status(201).json({

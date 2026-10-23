@@ -32,16 +32,19 @@ app.use((req, res, next) => {
   next()
 })
 app.use(morgan('dev'));
+
 app.use(cors({
   origin: [
-     "http://localhost:5173",
-     "http://style4u.co.in",
-      "https://www.style4u.co.in",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173", // Added for local testing
+    "http://style4u.co.in",
+    "https://www.style4u.co.in",
     "https://escorts-kubota-portall.vercel.app",
- ],
+  ],
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
 }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
