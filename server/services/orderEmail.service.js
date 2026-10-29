@@ -96,26 +96,17 @@ const buildContent = (order, key) => {
 
 // Atomically claim an event. Returns the notification doc if this call won the
 // claim, or null when the event was already handled (duplicate-key 11000).
-const claimNotification = async (orderId, key, type, options = {}) => {
-  const corrId = options.correlationId || 'unknown';
-  const orderIdRedacted = `***${String(orderId).slice(-6)}`;
+const claimNotification = async (orderId, key, type) => {
   try {
-    const claimStart = Date.now();
-    const doc = await OrderNotification.create({
+    return await OrderNotification.create({
       order: orderId,
       key,
       type,
       status: 'sending',
       leaseUntil: leaseDeadline(new Date()),
     });
-    console.log(`[ORDER_EMAIL_DIAG] [${new Date().toISOString()}] [stage:claim_succeeded] [corrId:${corrId}] [orderId:${orderIdRedacted}] Notification claimed successfully (key:${key}, notifId:${doc._id}, duration:${Date.now() - claimStart}ms)`);
-    return doc;
   } catch (error) {
-    if (error && error.code === 11000) {
-      console.warn(`[ORDER_EMAIL_DIAG] [${new Date().toISOString()}] [stage:claim_skipped] [corrId:${corrId}] [orderId:${orderIdRedacted}] Notification claim skipped: duplicate/already exists (key:${key})`);
-      return null;
-    }
-    console.error(`[ORDER_EMAIL_DIAG] [${new Date().toISOString()}] [stage:claim_failed] [corrId:${corrId}] [orderId:${orderIdRedacted}] Notification claim database error (key:${key}): ${error.message}`);
+    if (error && error.code === 11000) return null;
     throw error;
   }
 };
@@ -138,47 +129,27 @@ const claimForRetry = async (notificationId) => {
 };
 
 // Deliver an already-claimed notification. Records outcome; never throws.
-const deliver = async (notification, order, options = {}) => {
-  const corrId = options.correlationId || 'unknown';
-  const orderIdRedacted = `***${String(order?._id || notification?.order).slice(-6)}`;
-  const deliverStart = Date.now();
-
+const deliver = async (notification, order) => {
   const recipients = getRecipients(order);
   const { subject, html, attachInvoice } = buildContent(order, notification.key);
 
   try {
     if (!isOrderEmailConfigured()) {
-      console.error(`[ORDER_EMAIL_DIAG] [${new Date().toISOString()}] [stage:config_check_failed] [corrId:${corrId}] [orderId:${orderIdRedacted}] BREVO_API_KEY is not configured in environment`);
       throw new Error('BREVO_API_KEY is not configured');
     }
     if (!recipients.length) {
-      console.error(`[ORDER_EMAIL_DIAG] [${new Date().toISOString()}] [stage:recipients_check_failed] [corrId:${corrId}] [orderId:${orderIdRedacted}] No recipients resolved`);
       throw new Error('No recipients resolved');
     }
 
     const attachments = [];
     if (attachInvoice) {
-      const invStart = Date.now();
-      console.log(`[ORDER_EMAIL_DIAG] [${new Date().toISOString()}] [stage:invoice_gen_start] [corrId:${corrId}] [orderId:${orderIdRedacted}] Invoice PDF generation started`);
-      try {
-        const pdf = await renderInvoiceToBuffer(order);
-        const invDuration = Date.now() - invStart;
-        console.log(`[ORDER_EMAIL_DIAG] [${new Date().toISOString()}] [stage:invoice_gen_complete] [corrId:${corrId}] [orderId:${orderIdRedacted}] Invoice PDF generated (duration:${invDuration}ms, bytes:${pdf.length})`);
-        attachments.push({
-          filename: `Invoice-${order.orderId}.pdf`,
-          content: pdf,
-          contentType: 'application/pdf',
-        });
-      } catch (invErr) {
-        const invDuration = Date.now() - invStart;
-        console.error(`[ORDER_EMAIL_DIAG] [${new Date().toISOString()}] [stage:invoice_gen_failed] [corrId:${corrId}] [orderId:${orderIdRedacted}] Invoice PDF generation failed (duration:${invDuration}ms): ${invErr.message}`);
-        throw invErr;
-      }
+      const pdf = await renderInvoiceToBuffer(order);
+      attachments.push({
+        filename: `Invoice-${order.orderId}.pdf`,
+        content: pdf,
+        contentType: 'application/pdf',
+      });
     }
-
-    const mailConfig = getOrderMailConfig();
-    const sendStart = Date.now();
-    console.log(`[ORDER_EMAIL_DIAG] [${new Date().toISOString()}] [stage:email_send_start] [corrId:${corrId}] [orderId:${orderIdRedacted}] Brevo HTTPS API send initiating (sender:${mailConfig.fromEmail ? 'configured' : 'missing'}, recipientCount:${recipients.length})`);
 
     const info = await sendBrevoEmail({
       from: getFromAddress(),
@@ -188,43 +159,27 @@ const deliver = async (notification, order, options = {}) => {
       attachments,
     });
 
-    const sendDuration = Date.now() - sendStart;
-    console.log(`[ORDER_EMAIL_DIAG] [${new Date().toISOString()}] [stage:email_send_success] [corrId:${corrId}] [orderId:${orderIdRedacted}] Brevo HTTPS API send succeeded (duration:${sendDuration}ms, messageId:${info && info.messageId ? info.messageId : 'none'})`);
-
     notification.status = 'sent';
     notification.to = recipients;
     notification.messageId = info && info.messageId ? info.messageId : undefined;
     notification.sentAt = new Date();
     notification.error = undefined;
     notification.leaseUntil = null;
-
-    const persistStart = Date.now();
     await notification.save();
-    console.log(`[ORDER_EMAIL_DIAG] [${new Date().toISOString()}] [stage:notification_persist_complete] [corrId:${corrId}] [orderId:${orderIdRedacted}] Notification status persisted as 'sent' (duration:${Date.now() - persistStart}ms, deliverTotal:${Date.now() - deliverStart}ms)`);
 
     return { sent: true, messageId: notification.messageId, to: recipients };
   } catch (error) {
-    const errorStage = attachments.length === 0 && attachInvoice ? 'invoice_gen_or_prep' : 'email_send_api';
-    const errCode = error && error.code ? error.code : 'none';
-    const errCommand = error && error.command ? error.command : 'none';
-    const errRespCode = error && error.responseCode ? error.responseCode : 'none';
-    const errName = error && error.name ? error.name : 'Error';
-    const safeMsg = String(error && error.message ? error.message : error).replace(/[\r\n]+/g, ' ');
-
-    console.error(`[ORDER_EMAIL_DIAG] [${new Date().toISOString()}] [stage:email_send_failed] [corrId:${corrId}] [orderId:${orderIdRedacted}] Email delivery failure (stage:${errorStage}, errName:${errName}, errCode:${errCode}, command:${errCommand}, responseCode:${errRespCode}, msg:${safeMsg})`);
-
     notification.status = 'failed';
     notification.to = recipients;
     notification.error = String(error && error.message ? error.message : error);
     notification.leaseUntil = null;
 
-    const persistStart = Date.now();
     try {
       await notification.save();
-      console.log(`[ORDER_EMAIL_DIAG] [${new Date().toISOString()}] [stage:notification_persist_complete] [corrId:${corrId}] [orderId:${orderIdRedacted}] Notification status persisted as 'failed' (duration:${Date.now() - persistStart}ms, deliverTotal:${Date.now() - deliverStart}ms)`);
     } catch (saveError) {
       console.error(
-        `[ORDER_EMAIL_DIAG] [${new Date().toISOString()}] [stage:notification_persist_failed] [corrId:${corrId}] [orderId:${orderIdRedacted}] Failed to record order notification outcome (duration:${Date.now() - persistStart}ms): ${saveError.message}`
+        'Failed to record order notification outcome:',
+        saveError.message
       );
     }
 
@@ -233,72 +188,49 @@ const deliver = async (notification, order, options = {}) => {
 };
 
 // Public: send a notification for an event key (claim + deliver). Never throws.
-const notify = async (orderInput, key, type, options = {}) => {
-  const notifyStart = Date.now();
-  const corrId = options.correlationId || `notif_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+const notify = async (orderInput, key, type) => {
   try {
     const orderId = resolveOrderId(orderInput);
-    const orderIdRedacted = `***${String(orderId || 'none').slice(-6)}`;
-
-    if (!orderId) {
-      console.warn(`[ORDER_EMAIL_DIAG] [${new Date().toISOString()}] [stage:notify_aborted] [corrId:${corrId}] Order id is required`);
-      return { sent: false, error: 'Order id is required' };
-    }
+    if (!orderId) return { sent: false, error: 'Order id is required' };
 
     const order = await loadOrderForEmail(orderId);
-    if (!order) {
-      console.warn(`[ORDER_EMAIL_DIAG] [${new Date().toISOString()}] [stage:notify_aborted] [corrId:${corrId}] [orderId:${orderIdRedacted}] Order not found`);
-      return { sent: false, error: 'Order not found' };
-    }
+    if (!order) return { sent: false, error: 'Order not found' };
 
-    const notification = await claimNotification(order._id, key, type, { correlationId: corrId });
-    if (!notification) {
-      console.log(`[ORDER_EMAIL_DIAG] [${new Date().toISOString()}] [stage:email_finished] [corrId:${corrId}] [orderId:${orderIdRedacted}] Email skipped (reason: duplicate, duration:${Date.now() - notifyStart}ms)`);
-      return { skipped: true, reason: 'duplicate' };
-    }
+    const notification = await claimNotification(order._id, key, type);
+    if (!notification) return { skipped: true, reason: 'duplicate' };
 
-    const result = await deliver(notification, order, { correlationId: corrId });
-    console.log(`[ORDER_EMAIL_DIAG] [${new Date().toISOString()}] [stage:email_finished] [corrId:${corrId}] [orderId:${orderIdRedacted}] Email finished (sent:${Boolean(result?.sent)}, status:${result?.sent ? 'sent' : 'failed'}, totalDuration:${Date.now() - notifyStart}ms)`);
-    return result;
+    return await deliver(notification, order);
   } catch (error) {
-    console.error(`[ORDER_EMAIL_DIAG] [${new Date().toISOString()}] [stage:email_finished] [corrId:${corrId}] Order email notification top-level error (totalDuration:${Date.now() - notifyStart}ms): ${error.message}`);
+    console.error('Order email notification failed:', error.message);
     return { sent: false, error: error.message };
   }
 };
 
 // Regular dealer order — only after payment verification has succeeded.
-const sendOrderConfirmation = async (orderInput, options = {}) => {
-  const corrId = options.correlationId || `diag_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+const sendOrderConfirmation = async (orderInput) => {
   const orderId = resolveOrderId(orderInput);
-  const orderIdRedacted = `***${String(orderId || 'none').slice(-6)}`;
-
-  console.log(`[ORDER_EMAIL_DIAG] [${new Date().toISOString()}] [stage:email_entered] [corrId:${corrId}] [orderId:${orderIdRedacted}] sendOrderConfirmation entered`);
-
   const order = orderId ? await loadOrderForEmail(orderId).catch(() => null) : null;
 
   if (order && order.paymentStatus !== 'paid') {
-    console.warn(`[ORDER_EMAIL_DIAG] [${new Date().toISOString()}] [stage:email_eligibility_skipped] [corrId:${corrId}] [orderId:${orderIdRedacted}] Eligibility skipped: payment not verified (status:${order.paymentStatus})`);
     return { skipped: true, reason: 'payment not verified' };
   }
 
-  console.log(`[ORDER_EMAIL_DIAG] [${new Date().toISOString()}] [stage:email_eligibility_passed] [corrId:${corrId}] [orderId:${orderIdRedacted}] Eligibility passed: order confirmed as paid`);
-
-  return notify(orderInput, 'order_confirmation', 'order_confirmation', { correlationId: corrId });
+  return notify(orderInput, 'order_confirmation', 'order_confirmation');
 };
 
 // Sponsored order — persisted as paid on creation.
-const sendSponsoredOrderConfirmation = async (orderInput, options = {}) =>
-  notify(orderInput, 'sponsored_order', 'sponsored_order', options);
+const sendSponsoredOrderConfirmation = async (orderInput) =>
+  notify(orderInput, 'sponsored_order', 'sponsored_order');
 
 // Status update — only when the status genuinely changed.
-const sendOrderStatusUpdate = async (orderInput, { newStatus, correlationId } = {}) => {
+const sendOrderStatusUpdate = async (orderInput, { newStatus } = {}) => {
   const orderId = resolveOrderId(orderInput);
   const order = orderId ? await loadOrderForEmail(orderId).catch(() => null) : null;
   const status = newStatus || (order && order.status);
 
   if (!status) return { skipped: true, reason: 'no status' };
 
-  return notify(orderInput, `status_update:${status}`, 'status_update', { correlationId });
+  return notify(orderInput, `status_update:${status}`, 'status_update');
 };
 
 // ─── Safe retry path ───────────────────────────────────────────────────

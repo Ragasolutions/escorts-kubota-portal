@@ -218,9 +218,6 @@ const fetchPricing = async () => {
       order_id: razorpayRes.data.razorpayOrderId,
       handler: async (response) => {
         // 3. Payment SUCCESS → now create order in DB
-        const handlerStart = performance.now();
-        console.log(`[ORDER_EMAIL_DIAG] [${new Date().toISOString()}] Payment success callback received from Razorpay`);
-
         try {
           const finalAddress = useCustomAddress
             ? customAddress
@@ -232,9 +229,6 @@ const fetchPricing = async () => {
                 phone: savedAddressData?.phone || user?.phone || '',
               }
 
-          // 3a. Create DB order
-          const orderStart = performance.now();
-          console.log(`[ORDER_EMAIL_DIAG] [${new Date().toISOString()}] Initiating backend order creation...`);
           const orderRes = await api.post('/orders', {
             items: cart.map((item) => ({
               product: item.product,
@@ -246,34 +240,22 @@ const fetchPricing = async () => {
             razorpayPaymentId: response.razorpay_payment_id,
             razorpaySignature: response.razorpay_signature,
           })
-          const orderDuration = (performance.now() - orderStart).toFixed(1);
-          console.log(`[ORDER_EMAIL_DIAG] [${new Date().toISOString()}] Backend order created (duration: ${orderDuration}ms)`);
 
           // 4. Verify payment
-          const verifyStart = performance.now();
-          console.log(`[ORDER_EMAIL_DIAG] [${new Date().toISOString()}] Initiating payment verification request...`);
           await api.post('/payments/verify', {
             razorpayOrderId: response.razorpay_order_id,
             razorpayPaymentId: response.razorpay_payment_id,
             razorpaySignature: response.razorpay_signature,
             orderId: orderRes.data.order._id,
           })
-          const verifyDuration = (performance.now() - verifyStart).toFixed(1);
-          console.log(`[ORDER_EMAIL_DIAG] [${new Date().toISOString()}] Payment verification completed (duration: ${verifyDuration}ms, totalCheckoutTime: ${(performance.now() - handlerStart).toFixed(1)}ms)`);
 
           // 5. Clear cart only after successful payment
-          const navTime = new Date().toISOString();
-          console.log(`[ORDER_EMAIL_DIAG] [${navTime}] Clearing cart and navigating to /my-orders`);
           localStorage.removeItem('cart')
           setCart([])
           toast.success('Payment successful! Order placed 🎉')
           navigate('/my-orders')
 
         } catch (err) {
-          const totalElapsed = (performance.now() - handlerStart).toFixed(1);
-          const safeMessage = err.response?.data?.message || err.message || 'Unknown error';
-          const safeStatus = err.response?.status || 'network_error';
-          console.error(`[ORDER_EMAIL_DIAG] [${new Date().toISOString()}] Checkout handler failed (status: ${safeStatus}, duration: ${totalElapsed}ms): ${safeMessage}`);
           toast.error('Order creation failed after payment. Contact support.')
         }
       },
